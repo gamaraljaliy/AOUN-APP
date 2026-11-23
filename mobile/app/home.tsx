@@ -1,12 +1,43 @@
-import { useState } from "react";
-import { useDemo } from "../ui/demo";
-import { Card, Chip, Field, Round, S, Shell, T, go } from "../ui/components";
-import { PlaceCard } from "../ui/places";
-import { View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+
+import { searchPlaces, type Place } from "../services/places";
+import {
+  Btn, Card, Chip, Field, Round, S, Shell, T, go,
+} from "../ui/components";
+
 export default function Home() {
-  const d = useDemo();
-  const [q, setQ] = useState("");
-  const list = d.places.filter((p) => (p.name + p.category).includes(q.trim()));
+  const [query, setQuery] = useState("");
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setLoading(true);
+    setError(false);
+
+    async function load() {
+      try {
+        const results = await searchPlaces(query.trim(), [], controller.signal);
+        if (!controller.signal.aborted) setPlaces(results);
+      } catch {
+        if (!controller.signal.aborted) setError(true);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+
+    const timer = setTimeout(() => void load(), query.trim() ? 300 : 0);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, attempt]);
+
   return (
     <Shell brand nav>
       <View style={S.row}>
@@ -14,28 +45,54 @@ export default function Home() {
           <Field
             label="البحث عن مكان"
             placeholder="ابحث عن مكان..."
-            value={q}
-            onChangeText={setQ}
+            value={query}
+            onChangeText={setQuery}
+            maxLength={150}
+            returnKeyType="search"
           />
         </View>
+
         <Round
           icon="sort"
           label="البحث والفلترة"
           onPress={() => go("/search")}
         />
       </View>
+
       <View style={S.wrap}>
-        {["منحدرات", "مصاعد", "دورات مياه مهيأة"].map((x, i) => (
-          <Chip key={x} label={x} onPress={() => go("/search?facility=" + i)} />
+        {["منحدرات", "مصاعد", "دورات مياه مهيأة"].map((name, index) => (
+          <Chip
+            key={name}
+            label={name}
+            onPress={() => go(`/search?facility=${index}`)}
+          />
         ))}
       </View>
-      {list.map((p) => (
-        <PlaceCard p={p} key={p.id} />
-      ))}
-      {!list.length && (
+
+      {loading ? (
+        <ActivityIndicator accessibilityLabel="جارٍ تحميل الأماكن" />
+      ) : error ? (
         <Card>
-          <T>لا توجد نتائج مطابقة.</T>
+          <T>تعذّر تحميل الأماكن.</T>
+          <Btn
+            label="إعادة المحاولة"
+            onPress={() => setAttempt((value) => value + 1)}
+          />
         </Card>
+      ) : places.length === 0 ? (
+        <T>لا توجد نتائج مطابقة.</T>
+      ) : (
+        places.map((place) => (
+          <Card key={place.id}>
+            <T bold size={20}>{place.name_ar}</T>
+            <T>{place.category_ar}</T>
+            <Btn
+              label="عرض التفاصيل"
+              kind="soft"
+              onPress={() => go(`/live-places/${place.id}`)}
+            />
+          </Card>
+        ))
       )}
     </Shell>
   );
