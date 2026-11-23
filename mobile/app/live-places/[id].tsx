@@ -6,11 +6,7 @@ import { getPlaceDetails, type Detail } from "../../services/places";
 import { Btn, C, Card, Message, S, Shell, T, Title } from "../../ui/components";
 import { statusNames, useDemo } from "../../ui/demo";
 
-const levelLabels: Record<string, string> = {
-  accessible: "مهيأ بالكامل",
-  partially_accessible: "مهيأ جزئيًا",
-  not_accessible: "غير مهيأ",
-};
+import { levelLabels } from "../../ui/places";
 
 export default function LivePlaceDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -77,9 +73,7 @@ export default function LivePlaceDetails() {
         <T color={C.muted}>{category}</T>
         {description && <T>{description}</T>}
         {place.address && <T size={14}>{place.address}</T>}
-        <T bold>
-          {levelLabels[place.level ?? ""] ?? "بانتظار المراجعة"}
-        </T>
+        <T bold>{levelLabels[place.level ?? ""] ?? "بانتظار المراجعة"}</T>
       </Card>
 
       <Title>مرافق الإتاحة</Title>

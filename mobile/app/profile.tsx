@@ -19,6 +19,7 @@ export default function Profile() {
   const d = useDemo();
   const [editing, setEdit] = useState(false),
     [name, setName] = useState(d.user?.name ?? "");
+  const [attempted, setAttempted] = useState(false);
   return (
     <Shell nav title="حسابي والإعدادات">
       <Card style={{ alignItems: "center", padding: 23 }}>
@@ -33,15 +34,27 @@ export default function Profile() {
           <Btn
             kind="soft"
             label="تعديل الملف الشخصي"
-            onPress={() => setEdit(!editing)}
+            onPress={() => {
+              setAttempted(false);
+              setName(d.user?.name ?? "");
+              setEdit(!editing);
+            }}
           />
           {editing && (
             <>
-              <Field label="الاسم الكامل" value={name} onChangeText={setName} />
+              <Field
+                label="الاسم الكامل"
+                error={
+                  attempted && !name.trim() ? "أدخل الاسم الكامل." : undefined
+                }
+                value={name}
+                onChangeText={setName}
+              />
               <Btn
                 label="حفظ التعديلات"
-                disabled={!name.trim()}
                 onPress={() => {
+                  setAttempted(true);
+                  if (!name.trim()) return;
                   d.setAccounts((all) =>
                     all.map((a) =>
                       a.email === d.email ? { ...a, name: name.trim() } : a,

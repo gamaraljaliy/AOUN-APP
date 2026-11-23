@@ -1,3 +1,4 @@
+import { LivePlaceCard } from "../ui/places";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
@@ -5,7 +6,15 @@ import { useLocalSearchParams } from "expo-router";
 import { searchPlaces, type Place } from "../services/places";
 import { facilityNames, useDemo } from "../ui/demo";
 import {
-  Btn, Card, Chip, Field, Round, S, Shell, T, Title, go,
+  Btn,
+  Card,
+  Chip,
+  Field,
+  Round,
+  S,
+  Shell,
+  T,
+  Title,
 } from "../ui/components";
 
 const categories = ["الكل", "مركز تسوق", "مقهى", "مرافق عامة", "مطعم"];
@@ -144,17 +153,7 @@ export default function Search() {
       ) : rows.length === 0 ? (
         <T>لا توجد نتائج مطابقة.</T>
       ) : (
-        rows.map((place) => (
-          <Card key={place.id}>
-            <T bold size={20}>{place.name_ar}</T>
-            <T>{place.category_ar}</T>
-            <Btn
-              label="عرض التفاصيل"
-              kind="soft"
-              onPress={() => go(`/live-places/${place.id}`)}
-            />
-          </Card>
-        ))
+        rows.map((place) => <LivePlaceCard key={place.id} place={place} />)
       )}
     </Shell>
   );

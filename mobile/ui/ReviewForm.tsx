@@ -9,6 +9,7 @@ import {
   C,
   Card,
   Field,
+  FieldError,
   Icon,
   Link,
   Message,
@@ -31,6 +32,7 @@ export function ReviewForm({ edit = false }: { edit?: boolean }) {
     [text, setText] = useState(previous?.text ?? ""),
     [photos, setPhotos] = useState(previous?.photos ?? []),
     [msg, setMsg] = useState("");
+  const [attempted, setAttempted] = useState(false);
   async function photo(camera: boolean) {
     try {
       if (camera && !(await Picker.requestCameraPermissionsAsync()).granted) {
@@ -49,7 +51,7 @@ export function ReviewForm({ edit = false }: { edit?: boolean }) {
   }
   function save() {
     if (!score) {
-      setMsg("اختاري تقييمًا من ١ إلى ٥.");
+      setAttempted(true);
       return;
     }
     if (!d.user || !place) return;
@@ -111,6 +113,9 @@ export function ReviewForm({ edit = false }: { edit?: boolean }) {
                 </Pressable>
               ))}
             </View>
+            <FieldError
+              text={attempted && !score ? "اختر تقييمًا من ١ إلى ٥." : undefined}
+            />
           </Card>
           <Card>
             <Field

@@ -1,3 +1,4 @@
+import { coordinateError } from "../../ui/validation";
 import { useState } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
@@ -11,7 +12,6 @@ import {
   Btn,
   Chip,
   Field,
-  Message,
   S,
   Shell,
   T,
@@ -30,22 +30,17 @@ export default function PlaceForm() {
     [facilities, setFacilities] = useState<Availability[]>(
       p?.facilities ?? facilityNames.map(() => "unknown"),
     ),
-    [msg, setMsg] = useState("");
+    [attempted, setAttempted] = useState(false);
+  const errors = {
+    name: name.trim() ? "" : "أدخل اسم المكان.",
+    category: category.trim() ? "" : "أدخل فئة المكان.",
+    address: address.trim() ? "" : "أدخل العنوان.",
+    lat: coordinateError(lat, 90),
+    lon: coordinateError(lon, 180),
+  };
   function save() {
-    if (
-      !name.trim() ||
-      !category.trim() ||
-      !address.trim() ||
-      !lat.trim() ||
-      !lon.trim() ||
-      !Number.isFinite(Number(lat)) ||
-      !Number.isFinite(Number(lon)) ||
-      Math.abs(Number(lat)) > 90 ||
-      Math.abs(Number(lon)) > 180
-    ) {
-      setMsg("أكملي بيانات المكان وأدخلي إحداثيات صحيحة.");
-      return;
-    }
+    setAttempted(true);
+    if (Object.values(errors).some(Boolean)) return;
     const data = {
       ...p,
       id: p?.id ?? Date.now(),
@@ -63,15 +58,40 @@ export default function PlaceForm() {
   }
   return (
     <Shell admin title="إضافة / تعديل مكان">
-      <Field label="اسم المكان" value={name} onChangeText={setName} />
-      <Field label="الفئة" value={category} onChangeText={setCategory} />
-      <Field label="العنوان" value={address} onChangeText={setAddress} />
+      <Field
+        label="اسم المكان"
+        error={attempted ? errors.name : undefined}
+        value={name}
+        onChangeText={setName}
+      />
+      <Field
+        label="الفئة"
+        error={attempted ? errors.category : undefined}
+        value={category}
+        onChangeText={setCategory}
+      />
+      <Field
+        label="العنوان"
+        error={attempted ? errors.address : undefined}
+        value={address}
+        onChangeText={setAddress}
+      />
       <View style={S.row}>
         <View style={{ flex: 1 }}>
-          <Field label="خط العرض" value={lat} onChangeText={setLat} />
+          <Field
+            label="خط العرض"
+            error={attempted ? errors.lat : undefined}
+            value={lat}
+            onChangeText={setLat}
+          />
         </View>
         <View style={{ flex: 1 }}>
-          <Field label="خط الطول" value={lon} onChangeText={setLon} />
+          <Field
+            label="خط الطول"
+            error={attempted ? errors.lon : undefined}
+            value={lon}
+            onChangeText={setLon}
+          />
         </View>
       </View>
       <Title>مرافق الإتاحة</Title>
@@ -93,7 +113,6 @@ export default function PlaceForm() {
           />
         ))}
       </View>
-      <Message text={msg} />
       <Btn label="حفظ بيانات المكان" onPress={save} />
     </Shell>
   );

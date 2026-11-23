@@ -105,3 +105,50 @@ export function Categories({
     </View>
   );
 }
+
+export const levelLabels: Record<string, string> = {
+  accessible: "مهيأ بالكامل",
+  partially_accessible: "مهيأ جزئيًا",
+  not_accessible: "غير مهيأ",
+};
+
+export function LivePlaceCard({
+  place,
+}: {
+  place: import("../services/places").Place;
+}) {
+  const { lang } = useDemo();
+  return (
+    <Card>
+      <View style={S.row}>
+        <Icon name="building" />
+        <View style={{ flex: 1 }}>
+          <T bold size={20}>
+            {lang === "en" ? (place.name_en ?? place.name_ar) : place.name_ar}
+          </T>
+          <T size={14} color={C.muted}>
+            {lang === "en"
+              ? (place.category_en ?? place.category_ar)
+              : place.category_ar}
+          </T>
+        </View>
+      </View>
+      <View
+        style={{
+          alignSelf: "flex-end",
+          backgroundColor: place.level === "accessible" ? C.pale : C.gray,
+          paddingHorizontal: 12,
+          paddingVertical: 4,
+          borderRadius: 16,
+        }}
+      >
+        <T size={14}>{levelLabels[place.level ?? ""] ?? "بانتظار المراجعة"}</T>
+      </View>
+      <Btn
+        label="عرض التفاصيل"
+        kind="soft"
+        onPress={() => go(`/live-places/${place.id}`)}
+      />
+    </Card>
+  );
+}

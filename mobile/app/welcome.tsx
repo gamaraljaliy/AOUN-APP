@@ -1,6 +1,8 @@
 import { View } from "react-native";
 import { Btn, Logo, Shell, T, go, replace } from "../ui/components";
+import { useDemo } from "../ui/demo";
 export default function Welcome() {
+  const { setEmail } = useDemo();
   return (
     <Shell>
       <View
@@ -31,7 +33,10 @@ export default function Welcome() {
           <Btn
             label="المتابعة كزائر"
             kind="soft"
-            onPress={() => replace("/home")}
+            onPress={() => {
+              setEmail(null);
+              replace("/home");
+            }}
           />
         </View>
       </View>
