@@ -181,4 +181,31 @@ export const english: Record<string, string> = {
   "يمكن للمسؤول مراجعة البلاغ.": "An administrator can review this report.",
   "٨ أحرف على الأقل، حرف كبير ورقم.":
     "At least 8 characters, one uppercase letter and one number.",
+
+  "٨ أحرف على الأقل": "At least 8 characters",
+  "حرف إنجليزي كبير (A–Z)": "One uppercase letter (A–Z)",
+  "رقم واحد على الأقل (0–9)": "One digit (0–9)",
+  "أدخل الاسم الكامل.": "Enter your full name.",
+  "أدخل البريد الإلكتروني.": "Enter your email.",
+  "أدخل بريدًا إلكترونيًا صحيحًا.": "Enter a valid email address.",
+  "أدخل كلمة المرور.": "Enter your password.",
+  "أكمل شروط كلمة المرور أدناه.": "Meet the password requirements below.",
+  "أعد كتابة كلمة المرور.": "Confirm your password.",
+  "كلمتا المرور غير متطابقتين.": "The passwords do not match.",
+  "الموافقة مطلوبة لإنشاء الحساب.": "Consent is required to create an account.",
+  "استعادة كلمة المرور بالبريد غير متاحة في النسخة التجريبية.":
+    "Email recovery is unavailable in this demo.",
+  "أدخل بريدك الإلكتروني المسجل لاستعادة كلمة المرور.":
+    "Enter your registered email to recover your password.",
+  "حسابات التجربة": "Demo accounts",
+  "أدخل خط العرض.": "Enter a latitude.",
+  "أدخل خط الطول.": "Enter a longitude.",
+  "أدخل قيمة بين ‎−90 و90.": "Enter a value between −90 and 90.",
+  "أدخل قيمة بين ‎−180 و180.": "Enter a value between −180 and 180.",
+  "أدخل اسم المكان.": "Enter the place name.",
+  "أدخل فئة المكان.": "Enter the place category.",
+  "أدخل العنوان.": "Enter the address.",
+  "اختر نوع المشكلة.": "Select an issue type.",
+  "أدخل وصف المشكلة.": "Describe the issue.",
+  "اختر تقييمًا من ١ إلى ٥.": "Choose a rating from 1 to 5.",
 };

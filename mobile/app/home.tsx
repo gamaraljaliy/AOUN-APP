@@ -1,10 +1,21 @@
+import { LivePlaceCard } from "../ui/places";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 import { searchPlaces, type Place } from "../services/places";
 import {
-  Btn, Card, Chip, Field, Round, S, Shell, T, go,
+  Btn,
+  Card,
+  Chip,
+  Field,
+  Round,
+  S,
+  Shell,
+  T,
+  go,
 } from "../ui/components";
+
+import { facilityNames } from "../ui/demo";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -43,6 +54,7 @@ export default function Home() {
       <View style={S.row}>
         <View style={{ flex: 1 }}>
           <Field
+            icon="search"
             label="البحث عن مكان"
             placeholder="ابحث عن مكان..."
             value={query}
@@ -60,7 +72,7 @@ export default function Home() {
       </View>
 
       <View style={S.wrap}>
-        {["منحدرات", "مصاعد", "دورات مياه مهيأة"].map((name, index) => (
+        {facilityNames.map((name, index) => (
           <Chip
             key={name}
             label={name}
@@ -82,17 +94,7 @@ export default function Home() {
       ) : places.length === 0 ? (
         <T>لا توجد نتائج مطابقة.</T>
       ) : (
-        places.map((place) => (
-          <Card key={place.id}>
-            <T bold size={20}>{place.name_ar}</T>
-            <T>{place.category_ar}</T>
-            <Btn
-              label="عرض التفاصيل"
-              kind="soft"
-              onPress={() => go(`/live-places/${place.id}`)}
-            />
-          </Card>
-        ))
+        places.map((place) => <LivePlaceCard key={place.id} place={place} />)
       )}
     </Shell>
   );

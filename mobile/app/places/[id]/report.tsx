@@ -7,7 +7,7 @@ import {
   Card,
   Chip,
   Field,
-  Message,
+  FieldError,
   S,
   Shell,
   T,
@@ -21,7 +21,7 @@ export default function Report() {
     p = d.places.find((x) => x.id === Number(id));
   const [kind, setKind] = useState(""),
     [text, setText] = useState(""),
-    [msg, setMsg] = useState(""),
+    [attempted, setAttempted] = useState(false),
     [sent, setSent] = useState(false);
   return (
     <Shell title="الإبلاغ عن مشكلة">
@@ -54,9 +54,15 @@ export default function Report() {
                 />
               ))}
             </View>
+            <FieldError
+              text={attempted && !kind ? "اختر نوع المشكلة." : undefined}
+            />
           </Card>
           <Card>
             <Field
+              error={
+                attempted && !text.trim() ? "أدخل وصف المشكلة." : undefined
+              }
               label="وصف المشكلة"
               multiline
               value={text}
@@ -64,12 +70,11 @@ export default function Report() {
               placeholder="اشرح المعلومة غير الدقيقة أو الناقصة."
             />
           </Card>
-          <Message text={msg} />
           <Btn
             label="إرسال البلاغ"
             onPress={() => {
               if (!kind || !text.trim()) {
-                setMsg("اختاري نوع المشكلة واكتبي الوصف.");
+                setAttempted(true);
                 return;
               }
               d.setReports((r) => [

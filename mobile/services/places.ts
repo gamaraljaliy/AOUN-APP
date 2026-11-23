@@ -2,6 +2,8 @@ export type Place = {
   id: number;
   name_ar: string;
   category_ar: string;
+  name_en?: string;
+  category_en?: string;
   level: string | null;
 };
 export type Detail = Place & {

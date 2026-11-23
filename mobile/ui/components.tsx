@@ -78,20 +78,12 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
 }
 export function Logo({ size = 120 }: { size?: number }) {
   return (
-    <View style={{ width: size, height: size, overflow: "hidden" }}>
-      <Image
-        source={require("../assets/images/aoun-logo.png")}
-        contentFit="contain"
-        style={{
-          position: "absolute",
-          width: size * 2.05,
-          height: size * 2.05,
-          left: -size * 0.55,
-          top: -size * 0.39,
-        }}
-        accessibilityLabel="عون"
-      />
-    </View>
+    <Image
+      source={require("../assets/images/aoun-mark.png")}
+      contentFit="contain"
+      style={{ width: size * 0.89, height: size }}
+      accessibilityLabel="عون"
+    />
   );
 }
 export function Btn({
@@ -210,24 +202,50 @@ export function Chip({
     </Pressable>
   );
 }
-export function Field({ label, ...props }: TextInputProps & { label: string }) {
+export function FieldError({ text }: { text?: string }) {
+  return text ? (
+    <View accessibilityRole="alert">
+      <T size={14} color={C.red}>
+        {text}
+      </T>
+    </View>
+  ) : null;
+}
+export function Field({
+  label,
+  error,
+  trailing,
+  icon,
+  ...props
+}: TextInputProps & {
+  label: string;
+  error?: string;
+  icon?: IconName;
+  trailing?: React.ReactNode;
+}) {
   const tr = useCopy();
   return (
     <View style={{ gap: 5 }}>
       <T bold size={15}>
         {label}
       </T>
-      <TextInput
-        {...props}
-        accessibilityLabel={tr(label)}
-        placeholder={props.placeholder && tr(props.placeholder)}
-        placeholderTextColor={C.muted}
-        style={[
-          S.field,
-          props.multiline && { height: 105, textAlignVertical: "top" },
-          props.style,
-        ]}
-      />
+      <View style={[S.inputRow, error ? { borderColor: C.red } : undefined]}>
+        {icon && <Icon name={icon} size={18} />}
+        <TextInput
+          {...props}
+          accessibilityHint={error ? tr(error) : undefined}
+          accessibilityLabel={tr(label)}
+          placeholder={props.placeholder && tr(props.placeholder)}
+          placeholderTextColor={C.muted}
+          style={[
+            S.field,
+            props.multiline && { height: 105, textAlignVertical: "top" },
+            props.style,
+          ]}
+        />
+        {trailing}
+      </View>
+      <FieldError text={error} />
     </View>
   );
 }
@@ -290,14 +308,24 @@ export function Shell({
     );
   return (
     <SafeAreaView style={S.page}>
-      {(title || brand) && (
+      {(title || brand || onBack) && (
         <View style={S.header}>
           {brand ? (
-            <View style={S.row}>
+            <View style={[S.row, { flex: 1 }]}>
               <Logo size={46} />
               <T size={33} bold>
-                عون
+                {title ?? "عون"}
               </T>
+              <View style={{ flex: 1 }}>
+                {nav && d.user && (
+                  <T bold size={16}>
+                    {d.lang === "ar"
+                      ? `أهلًا، ${d.user.name}`
+                      : `Hello, ${d.user.name}`}
+                  </T>
+                )}
+              </View>
+              {onBack && <Round icon="back" label="رجوع" onPress={onBack} />}
             </View>
           ) : (
             <>
@@ -329,7 +357,10 @@ export function Shell({
               key={url}
               accessibilityRole="tab"
               accessibilityState={{ selected: path === url }}
-              style={S.tab}
+              style={[
+                S.tab,
+                path === url && { backgroundColor: C.soft, borderRadius: 24 },
+              ]}
               onPress={() => {
                 if (path !== url) replace(url);
               }}
@@ -347,10 +378,21 @@ export function Shell({
 }
 export const S = StyleSheet.create({
   page: { flex: 1, backgroundColor: "white" },
-  body: { paddingHorizontal: 18, paddingVertical: 15, gap: 14, flexGrow: 1 },
+  body: {
+    width: "100%",
+    alignSelf: "center",
+    maxWidth: 620,
+    paddingHorizontal: 18,
+    paddingVertical: 15,
+    gap: 14,
+    flexGrow: 1,
+  },
   row: { flexDirection: "row-reverse", alignItems: "center", gap: 9 },
   wrap: { flexDirection: "row-reverse", gap: 8, flexWrap: "wrap" },
   header: {
+    alignSelf: "center",
+    width: "100%",
+    maxWidth: 620,
     paddingHorizontal: 14,
     paddingVertical: 8,
     flexDirection: "row-reverse",
@@ -390,11 +432,18 @@ export const S = StyleSheet.create({
     paddingHorizontal: 13,
     justifyContent: "center",
   },
-  field: {
+  inputRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    paddingHorizontal: 10,
     borderRadius: 13,
     borderWidth: 1,
     borderColor: C.line,
     backgroundColor: "#FBFBFD",
+  },
+  field: {
+    flex: 1,
+    minWidth: 0,
     minHeight: 48,
     padding: 11,
     fontSize: 16,

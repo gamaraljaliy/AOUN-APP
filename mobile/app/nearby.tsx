@@ -1,3 +1,4 @@
+import { coordinateError } from "../ui/validation";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import * as Location from "expo-location";
@@ -51,20 +52,15 @@ export default function Nearby() {
       setManual(true);
     }
   }
+  const [attempted, setAttempted] = useState(false);
+  const latError = coordinateError(lat, 90),
+    lonError = coordinateError(lon, 180);
   function save() {
     const a = Number(lat),
       b = Number(lon);
-    if (
-      !lat.trim() ||
-      !lon.trim() ||
-      !Number.isFinite(a) ||
-      !Number.isFinite(b) ||
-      Math.abs(a) > 90 ||
-      Math.abs(b) > 180
-    ) {
-      setMsg("أدخلي إحداثيات صحيحة.");
-      return;
-    }
+    setAttempted(true);
+    if (latError || lonError) return;
+    setAttempted(false);
     d.setOrigin({ lat: a, lon: b, label: "موقع يدوي" });
     setManual(false);
     setMsg("تم تحديث الموقع.");
@@ -145,12 +141,14 @@ export default function Nearby() {
           <>
             <Field
               label="خط العرض"
+              error={attempted ? latError : undefined}
               value={lat}
               onChangeText={setLat}
               keyboardType="numbers-and-punctuation"
             />
             <Field
               label="خط الطول"
+              error={attempted ? lonError : undefined}
               value={lon}
               onChangeText={setLon}
               keyboardType="numbers-and-punctuation"
