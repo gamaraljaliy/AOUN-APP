@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "عون",
+    "slug": "aoun",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "aoun"
+  }
+}

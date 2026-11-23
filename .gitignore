@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+.DS_Store
+.venv/
+__pycache__/
+node_modules/
+.expo/
+dist/
+supabase/.temp/
+supabase/.branches/
