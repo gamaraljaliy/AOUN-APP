@@ -24,6 +24,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
   const auth = useAuth();
   const [role, setRole] = useState<"member" | "admin">("member");
   const [busy, setBusy] = useState(false);
+  const [registrationResult, setRegistrationResult] = useState<
+    "ready" | "profile-error" | null
+  >(null);
   const tr = useCopy();
   const [attempted, setAttempted] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -67,7 +70,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
   async function submit() {
     setAttempted(true);
     setMsg("");
-    if (busy || Object.values(errors).some(Boolean)) return;
+    if (busy || registrationResult || Object.values(errors).some(Boolean)) return;
     setBusy(true);
     try {
       const client = db();
@@ -93,16 +96,40 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
           })
         : await client.auth.signInWithPassword({ email: key, password });
       if (result.error) {
+        const code = result.error.code;
         setMsg(
-          "تعذّر تسجيل الدخول أو إنشاء الحساب. تحققي من البيانات وتأكيد البريد.",
+          reg && (code === "user_already_exists" || code === "email_exists")
+            ? "هذا البريد مسجل بالفعل. سجّلي الدخول أو استعيدي كلمة المرور."
+            : code === "invalid_credentials"
+              ? "البريد الإلكتروني أو كلمة المرور غير صحيحة."
+              : code === "email_not_confirmed"
+                ? "يلزم تأكيد البريد لهذا الحساب قبل تسجيل الدخول."
+                : code === "weak_password"
+                  ? "كلمة المرور لا تستوفي شروط الحماية. راجعي الشروط وحاولي مجددًا."
+                  : reg
+                    ? "تعذّر إنشاء الحساب. تحققي من البيانات وحاولي مجددًا."
+                    : "تعذّر تسجيل الدخول. حاولي مجددًا.",
         );
         return;
       }
       if (!result.data.session) {
-        setMsg("راجعي بريدك لتأكيد الحساب، ثم سجّلي الدخول.");
+        setMsg(
+          reg
+            ? "راجعي بريدك لتأكيد الحساب، ثم سجّلي الدخول."
+            : "تعذّر تسجيل الدخول. حاولي مجددًا.",
+        );
         return;
       }
-      const profile = await readProfile(result.data.session.user.id);
+      let profile: Awaited<ReturnType<typeof readProfile>>;
+      try {
+        profile = await readProfile(result.data.session.user.id);
+      } catch (error) {
+        if (!reg) throw error;
+        setPassword("");
+        setConfirm("");
+        setRegistrationResult("profile-error");
+        return;
+      }
       if (profile.status !== "active") {
         await auth.signOut();
         setMsg("الحساب معلّق. تواصلي مع إدارة التطبيق.");
@@ -111,6 +138,12 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
       if (login && profile.role !== role) {
         await auth.signOut();
         setMsg("اختاري نوع الحساب المطابق لحسابك.");
+        return;
+      }
+      if (reg) {
+        setPassword("");
+        setConfirm("");
+        setRegistrationResult("ready");
         return;
       }
       replace(profile.role === "admin" ? "/admin/places" : "/home");
@@ -137,6 +170,27 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
       >
         <Icon name="eye" size={19} />
       </Pressable>
+    );
+  }
+  if (registrationResult) {
+    const ready = registrationResult === "ready";
+    return (
+      <Shell brand>
+        <View style={{ gap: 18, paddingVertical: 32 }}>
+          <T center bold size={28}>
+            {ready ? "تم إنشاء الحساب بنجاح" : "تم إنشاء الحساب، لكن تعذّر تحميل ملفك."}
+          </T>
+          <T center color={C.muted}>
+            {ready
+              ? "حسابك جاهز. يمكنك الآن استخدام عون."
+              : "سجّلي الدخول بالمعلومات نفسها للمحاولة مجددًا."}
+          </T>
+          <Btn
+            label={ready ? "متابعة إلى التطبيق" : "العودة إلى تسجيل الدخول"}
+            onPress={() => replace(ready ? "/home" : "/login")}
+          />
+        </View>
+      </Shell>
     );
   }
   const title = login

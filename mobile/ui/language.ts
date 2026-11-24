@@ -204,6 +204,25 @@ export const english: Record<string, string> = {
   "أعد كتابة كلمة المرور.": "Confirm your password.",
   "كلمتا المرور غير متطابقتين.": "The passwords do not match.",
   "الموافقة مطلوبة لإنشاء الحساب.": "Consent is required to create an account.",
+  "تم إنشاء الحساب بنجاح": "Account created successfully",
+  "حسابك جاهز. يمكنك الآن استخدام عون.": "Your account is ready. You can now use AOUN.",
+  "تم إنشاء الحساب، لكن تعذّر تحميل ملفك.":
+    "Your account was created, but your profile could not be loaded.",
+  "سجّلي الدخول بالمعلومات نفسها للمحاولة مجددًا.":
+    "Sign in with the same details to try again.",
+  "متابعة إلى التطبيق": "Continue to the app",
+  "هذا البريد مسجل بالفعل. سجّلي الدخول أو استعيدي كلمة المرور.":
+    "This email is already registered. Sign in or reset your password.",
+  "البريد الإلكتروني أو كلمة المرور غير صحيحة.": "Incorrect email or password.",
+  "يلزم تأكيد البريد لهذا الحساب قبل تسجيل الدخول.":
+    "Confirm this account's email before signing in.",
+  "كلمة المرور لا تستوفي شروط الحماية. راجعي الشروط وحاولي مجددًا.":
+    "Your password does not meet the security requirements. Check them and try again.",
+  "تعذّر إنشاء الحساب. تحققي من البيانات وحاولي مجددًا.":
+    "Could not create your account. Check your details and try again.",
+  "تعذّر تسجيل الدخول. حاولي مجددًا.": "Could not sign in. Please try again.",
+  "راجعي بريدك لتأكيد الحساب، ثم سجّلي الدخول.":
+    "Check your email to confirm your account, then sign in.",
   "استعادة كلمة المرور بالبريد غير متاحة في النسخة التجريبية.":
     "Email recovery is unavailable in this demo.",
   "أدخل بريدك الإلكتروني المسجل لاستعادة كلمة المرور.":
