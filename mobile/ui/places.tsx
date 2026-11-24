@@ -1,4 +1,5 @@
-import { View } from "react-native";
+import type { Place as LivePlace } from "../services/places";
+import { Linking, View } from "react-native";
 import { Btn, C, Card, Chip, Icon, Round, S, T, go } from "./components";
 import { distance, level, type Place, useDemo } from "./demo";
 export function PlaceCard({
@@ -11,7 +12,7 @@ export function PlaceCard({
   favorite?: boolean;
 }) {
   const d = useDemo();
-  const ratings = d.reviews.filter((r) => r.placeId === p.id),
+  const ratings = d.reviews.filter((r) => !r.live && r.placeId === p.id),
     saved = d.email && d.favorites[d.email]?.includes(p.id);
   const avg = ratings.length
     ? (ratings.reduce((sum, r) => sum + r.score, 0) / ratings.length).toFixed(1)
@@ -80,7 +81,14 @@ export function PlaceCard({
         onPress={() => go("/places/" + p.id)}
       />
       {!compact && (
-        <Btn label="الموقع" onPress={() => go("/nearby?place=" + p.id)} />
+        <Btn
+          label="الموقع"
+          onPress={() =>
+            Linking.openURL(
+              `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`,
+            )
+          }
+        />
       )}
     </Card>
   );
@@ -112,11 +120,20 @@ export const levelLabels: Record<string, string> = {
   not_accessible: "غير مهيأ",
 };
 
-export function LivePlaceCard({
-  place,
-}: {
-  place: import("../services/places").Place;
-}) {
+export function LiveFavoriteButton({ place }: { place: LivePlace }) {
+  const { user, liveFavorites, toggleLiveFavorite } = useDemo();
+  const saved = liveFavorites.some((item) => item.id === place.id);
+  return (
+    <Btn
+      icon="heart"
+      kind={saved ? "mint" : "outline"}
+      label={saved ? "إزالة من المفضلة" : "حفظ في المفضلة"}
+      onPress={() => (user ? toggleLiveFavorite(place) : go("/login"))}
+    />
+  );
+}
+
+export function LivePlaceCard({ place }: { place: LivePlace }) {
   const { lang } = useDemo();
   return (
     <Card>
@@ -144,6 +161,7 @@ export function LivePlaceCard({
       >
         <T size={14}>{levelLabels[place.level ?? ""] ?? "بانتظار المراجعة"}</T>
       </View>
+      <LiveFavoriteButton place={place} />
       <Btn
         label="عرض التفاصيل"
         kind="soft"

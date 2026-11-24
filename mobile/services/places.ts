@@ -66,3 +66,20 @@ export function getPlaceDetails(
 ): Promise<Detail> {
   return getPlacesData<Detail>(`/places/${placeId}`, signal);
 }
+
+export type Pin = {
+  place_id: number;
+  latitude: number;
+  longitude: number;
+  distance_km: number;
+};
+export function getNearbyPlaces(
+  latitude: number,
+  longitude: number,
+  signal: AbortSignal,
+) {
+  return getPlacesData<Pin[]>(
+    `/nearby?latitude=${latitude}&longitude=${longitude}`,
+    signal,
+  );
+}

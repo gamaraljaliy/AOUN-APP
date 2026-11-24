@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { usePlaceTarget } from "../../../ui/placeTarget";
 import { useDemo } from "../../../ui/demo";
 import {
   Btn,
+  C,
+  Icon,
   Card,
   Chip,
   Field,
@@ -16,9 +18,8 @@ import {
   replace,
 } from "../../../ui/components";
 export default function Report() {
-  const d = useDemo(),
-    { id } = useLocalSearchParams<{ id: string }>(),
-    p = d.places.find((x) => x.id === Number(id));
+  const d = useDemo();
+  const { place: p, live, details } = usePlaceTarget();
   const [kind, setKind] = useState(""),
     [text, setText] = useState(""),
     [attempted, setAttempted] = useState(false),
@@ -31,10 +32,7 @@ export default function Report() {
         <Card>
           <Title>تم إرسال البلاغ</Title>
           <T>يمكن للمسؤول مراجعة البلاغ.</T>
-          <Btn
-            label="العودة إلى المكان"
-            onPress={() => replace("/places/" + id)}
-          />
+          <Btn label="العودة إلى المكان" onPress={() => replace(details)} />
         </Card>
       ) : (
         <>
@@ -70,6 +68,13 @@ export default function Report() {
               placeholder="اشرح المعلومة غير الدقيقة أو الناقصة."
             />
           </Card>
+          <Card style={{ backgroundColor: C.soft }}>
+            <View style={S.row}>
+              <Icon name="shield" />
+              <T bold>بلاغك يساعد الآخرين</T>
+            </View>
+            <T size={14}>يراجع فريق عون البلاغ لتحديث معلومات المكان.</T>
+          </Card>
           <Btn
             label="إرسال البلاغ"
             onPress={() => {
@@ -82,6 +87,8 @@ export default function Report() {
                 {
                   id: Date.now(),
                   placeId: p.id,
+                  live,
+                  placeName: live ? p.name : undefined,
                   kind,
                   text: text.trim(),
                   status: "تم الإرسال",

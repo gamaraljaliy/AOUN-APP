@@ -1,9 +1,9 @@
 import { coordinateError } from "../ui/validation";
-import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Linking, Pressable, View } from "react-native";
 import * as Location from "expo-location";
 import { useLocalSearchParams } from "expo-router";
-import { distance, useDemo } from "../ui/demo";
+import { useDemo } from "../ui/demo";
 import {
   Btn,
   C,
@@ -17,23 +17,68 @@ import {
   T,
   go,
 } from "../ui/components";
-import { PlaceCard } from "../ui/places";
-import { openMap } from "../ui/location";
+import { LivePlaceCard } from "../ui/places";
+import {
+  searchPlaces,
+  getNearbyPlaces,
+  type Pin,
+  type Place,
+} from "../services/places";
 export default function Nearby() {
   const d = useDemo();
   const params = useLocalSearchParams<{ place?: string }>();
   const [map, setMap] = useState(true),
-    [id, setId] = useState(Number(params.place) || d.places[0]?.id),
+    [id, setId] = useState(Number(params.place)),
     [manual, setManual] = useState(false),
     [lat, setLat] = useState(""),
     [lon, setLon] = useState(""),
     [msg, setMsg] = useState("");
-  const rows = [...d.places].sort(
-    (a, b) =>
-      distance(d.origin.lat, d.origin.lon, a) -
-      distance(d.origin.lat, d.origin.lon, b),
-  );
-  const p = d.places.find((x) => x.id === id) ?? rows[0];
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [pins, setPins] = useState<Pin[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [attempt, retry] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError(false);
+    Promise.all([
+      searchPlaces("", [], controller.signal),
+      getNearbyPlaces(d.origin.lat, d.origin.lon, controller.signal),
+    ])
+      .then(([results, coordinates]) => {
+        if (controller.signal.aborted) return;
+        setPlaces(results);
+        setPins(coordinates);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [d.origin.lat, d.origin.lon, attempt]);
+  const byId = new Map(places.map((place) => [place.id, place]));
+  const pinById = new Map(pins.map((pin) => [pin.place_id, pin]));
+  const rows = pins.flatMap((pin) => {
+    const place = byId.get(pin.place_id);
+    return place
+      ? [
+          {
+            place,
+            id: place.id,
+            name:
+              d.lang === "ar"
+                ? place.name_ar
+                : (place.name_en ?? place.name_ar),
+            lat: pin.latitude,
+            lon: pin.longitude,
+          },
+        ]
+      : [];
+  });
+  const p = rows.find((row) => row.id === id) ?? rows[0];
   async function locate() {
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
@@ -75,7 +120,19 @@ export default function Nearby() {
         <Chip label="الخريطة" active={map} onPress={() => setMap(true)} />
         <Chip label="القائمة" active={!map} onPress={() => setMap(false)} />
       </View>
-      {map ? (
+      {loading ? (
+        <ActivityIndicator />
+      ) : error ? (
+        <Card>
+          <T>تعذّر تحميل الأماكن.</T>
+          <Btn label="إعادة المحاولة" onPress={() => retry((n) => n + 1)} />
+        </Card>
+      ) : map && !rows.length ? (
+        <Card>
+          <T>لا توجد أماكن بإحداثيات مسجلة لعرضها على الخريطة.</T>
+          <Btn label="القائمة" onPress={() => setMap(false)} />
+        </Card>
+      ) : map ? (
         <>
           <View
             style={{
@@ -124,10 +181,13 @@ export default function Nearby() {
               </Pressable>
             ))}
           </View>
-          {p && <PlaceCard p={p} compact />}
+          {p && <LivePlaceCard place={p.place} />}
         </>
       ) : (
-        rows.map((x) => <PlaceCard p={x} key={x.id} compact />)
+        [
+          ...rows.map((row) => row.place),
+          ...places.filter((place) => !pinById.has(place.id)),
+        ].map((place) => <LivePlaceCard key={place.id} place={place} />)
       )}
       <Card>
         <T bold>{d.origin.label}</T>
@@ -158,10 +218,14 @@ export default function Nearby() {
         )}
         <Message text={msg} />
       </Card>
-      {p && (
+      {!loading && !error && p && (
         <Btn
           label="فتح الموقع في تطبيق الخرائط"
-          onPress={() => openMap(p).catch(() => setMsg("تعذّر فتح الخرائط."))}
+          onPress={() =>
+            Linking.openURL(
+              `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`,
+            ).catch(() => setMsg("تعذّر فتح الخرائط."))
+          }
         />
       )}
     </Shell>

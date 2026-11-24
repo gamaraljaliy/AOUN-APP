@@ -1,3 +1,4 @@
+import type { Place as LivePlace } from "../services/places";
 import React, { createContext, useContext, useState } from "react";
 
 export const facilityNames = [
@@ -12,7 +13,10 @@ export const facilityNames = [
   "أنظمة سمعية",
 ];
 export type Availability =
-  "available" | "unavailable" | "not_applicable" | "unknown";
+  | "available"
+  | "unavailable"
+  | "not_applicable"
+  | "unknown";
 export const statusNames: Record<Availability, string> = {
   available: "متاح",
   unavailable: "غير متاح",
@@ -32,6 +36,8 @@ export type Place = {
 export type Review = {
   id: number;
   placeId: number;
+  live?: boolean;
+  placeName?: string;
   author: string;
   name: string;
   score: number;
@@ -41,6 +47,8 @@ export type Review = {
 export type Report = {
   id: number;
   placeId: number;
+  live?: boolean;
+  placeName?: string;
   kind: string;
   text: string;
   status: string;
@@ -127,6 +135,20 @@ function useDemoState() {
       photos: [],
     },
   ]);
+  const [liveFavoritesByEmail, setLiveFavorites] = useState<
+    Record<string, LivePlace[]>
+  >({});
+  const liveFavorites = email ? (liveFavoritesByEmail[email] ?? []) : [];
+  function toggleLiveFavorite(place: LivePlace) {
+    if (!user || user.suspended) return;
+    setLiveFavorites((previous) => {
+      const saved = previous[user.email] ?? [];
+      const next = saved.some((item) => item.id === place.id)
+        ? saved.filter((item) => item.id !== place.id)
+        : [...saved, place];
+      return { ...previous, [user.email]: next };
+    });
+  }
   const [favorites, setFavorites] = useState<Record<string, number[]>>({
     [memberEmail]: [2],
   });
@@ -161,8 +183,8 @@ function useDemoState() {
   }
   function removePlace(id: number) {
     setPlaces((v) => v.filter((x) => x.id !== id));
-    setReviews((v) => v.filter((x) => x.placeId !== id));
-    setReports((v) => v.filter((x) => x.placeId !== id));
+    setReviews((v) => v.filter((x) => x.live || x.placeId !== id));
+    setReports((v) => v.filter((x) => x.live || x.placeId !== id));
     setFavorites((v) =>
       Object.fromEntries(
         Object.entries(v).map(([k, ids]) => [k, ids.filter((i) => i !== id)]),
@@ -183,6 +205,8 @@ function useDemoState() {
     setReviews,
     favorites,
     toggleFavorite,
+    liveFavorites,
+    toggleLiveFavorite,
     reports,
     setReports,
     removePlace,

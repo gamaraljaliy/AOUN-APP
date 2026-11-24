@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, Pressable } from "react-native";
 import { Image } from "expo-image";
 import * as Picker from "expo-image-picker";
-import { useLocalSearchParams } from "expo-router";
+import { usePlaceTarget } from "./placeTarget";
 import { useDemo } from "./demo";
 import {
   Btn,
@@ -22,11 +22,11 @@ import {
   Round,
 } from "./components";
 export function ReviewForm({ edit = false }: { edit?: boolean }) {
-  const d = useDemo(),
-    { id } = useLocalSearchParams<{ id: string }>();
-  const place = d.places.find((p) => p.id === Number(id));
+  const d = useDemo();
+  const { id, live, place, form, details } = usePlaceTarget();
   const previous = d.reviews.find(
-    (r) => r.author === d.email && r.placeId === Number(id),
+    (r) =>
+      !!r.live === live && r.author === d.email && r.placeId === Number(id),
   );
   const [score, setScore] = useState(previous?.score ?? 0),
     [text, setText] = useState(previous?.text ?? ""),
@@ -60,15 +60,24 @@ export function ReviewForm({ edit = false }: { edit?: boolean }) {
       author: d.user.email,
       name: d.user.name,
       placeId: place.id,
+      live,
+      placeName: live ? place.name : undefined,
       score,
       text: text.trim(),
       photos,
     };
     d.setReviews((v) => [
-      ...v.filter((x) => !(x.placeId === r.placeId && x.author === r.author)),
+      ...v.filter(
+        (x) =>
+          !(
+            !!x.live === live &&
+            x.placeId === r.placeId &&
+            x.author === r.author
+          ),
+      ),
       r,
     ]);
-    replace("/places/" + place.id);
+    replace(details);
   }
   return (
     <Shell
@@ -78,7 +87,7 @@ export function ReviewForm({ edit = false }: { edit?: boolean }) {
           <Round
             icon="trash"
             label="حذف التقييم"
-            onPress={() => go("/places/" + id + "/delete-rating")}
+            onPress={() => go(form("delete-rating"))}
           />
         ) : undefined
       }
@@ -114,7 +123,9 @@ export function ReviewForm({ edit = false }: { edit?: boolean }) {
               ))}
             </View>
             <FieldError
-              text={attempted && !score ? "اختر تقييمًا من ١ إلى ٥." : undefined}
+              text={
+                attempted && !score ? "اختر تقييمًا من ١ إلى ٥." : undefined
+              }
             />
           </Card>
           <Card>
