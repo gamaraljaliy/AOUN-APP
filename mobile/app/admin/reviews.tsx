@@ -10,7 +10,7 @@ export default function Reviews() {
         <Card key={r.id}>
           <T bold>{r.name}</T>
           <T>{"★".repeat(r.score)}</T>
-          <T>{d.places.find((p) => p.id === r.placeId)?.name}</T>
+          <T>{r.placeName ?? d.places.find((p) => p.id === r.placeId)?.name}</T>
           <T>{r.text}</T>
           {id === r.id ? (
             <>

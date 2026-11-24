@@ -29,7 +29,7 @@ export default function Reports() {
       {rows.map((r) => (
         <Card key={r.id}>
           <Title>{r.kind}</Title>
-          <T>{d.places.find((p) => p.id === r.placeId)?.name}</T>
+          <T>{r.placeName ?? d.places.find((p) => p.id === r.placeId)?.name}</T>
           <T>{r.text}</T>
           <Chip
             label={r.status}

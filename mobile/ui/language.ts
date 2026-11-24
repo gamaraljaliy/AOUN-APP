@@ -1,4 +1,9 @@
 export const english: Record<string, string> = {
+  "بلاغك يساعد الآخرين": "Your report helps other visitors",
+  "يراجع فريق عون البلاغ لتحديث معلومات المكان.":
+    "The AOUN team reviews reports to update place information.",
+  "لا توجد أماكن بإحداثيات مسجلة لعرضها على الخريطة.":
+    "No places have coordinates to display on the map.",
   الرئيسية: "Home",
   الخريطة: "Map",
   المفضلة: "Favorites",

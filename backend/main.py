@@ -40,3 +40,9 @@ async def details(place_id: Annotated[int, Path(ge=1, le=2147483647)]):
     if place is None:
         raise HTTPException(404, "Place not found")
     return place
+
+
+@app.get("/nearby")
+async def nearby(latitude: Annotated[float, Query(ge=-90, le=90)],
+                 longitude: Annotated[float, Query(ge=-180, le=180)]):
+    return await rpc("nearby_places", {"origin_lat": latitude, "origin_lon": longitude})
