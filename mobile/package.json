@@ -5,7 +5,8 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:auth": "node --test tests/auth-links.test.cjs"
   },
   "dependencies": {
     "@expo-google-fonts/baloo-bhaijaan-2": "^0.4.2",

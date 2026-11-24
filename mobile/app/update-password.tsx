@@ -1,11 +1,23 @@
 import { useState } from "react";
+import { Pressable } from "react-native";
 import { useAuth } from "../auth/context";
 import { db, errorText } from "../services/supabase";
-import { Btn, Field, Message, Shell, replace } from "../ui/components";
+import {
+  Btn,
+  Field,
+  Icon,
+  Message,
+  Shell,
+  replace,
+  useCopy,
+} from "../ui/components";
 export default function UpdatePassword() {
   const auth = useAuth();
+  const tr = useCopy();
   const [password, setPassword] = useState(""),
     [confirm, setConfirm] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false),
+    [confirmVisible, setConfirmVisible] = useState(false);
   const [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false);
   async function save() {
@@ -34,6 +46,23 @@ export default function UpdatePassword() {
       setBusy(false);
     }
   }
+  function eye(label: string, toggle: () => void) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={tr(label)}
+        style={{
+          minWidth: 44,
+          minHeight: 44,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+        onPress={toggle}
+      >
+        <Icon name="eye" size={19} />
+      </Pressable>
+    );
+  }
   return (
     <Shell title="تعيين كلمة المرور">
       <Message text={message || auth.error} />
@@ -45,13 +74,25 @@ export default function UpdatePassword() {
             label="كلمة المرور الجديدة"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
+            secureTextEntry={!passwordVisible}
+            trailing={eye(
+              passwordVisible
+                ? "إخفاء كلمة المرور الجديدة"
+                : "إظهار كلمة المرور الجديدة",
+              () => setPasswordVisible((visible) => !visible),
+            )}
           />
           <Field
             label="تأكيد كلمة المرور"
             value={confirm}
             onChangeText={setConfirm}
-            secureTextEntry
+            secureTextEntry={!confirmVisible}
+            trailing={eye(
+              confirmVisible
+                ? "إخفاء تأكيد كلمة المرور"
+                : "إظهار تأكيد كلمة المرور",
+              () => setConfirmVisible((visible) => !visible),
+            )}
           />
           <Btn
             label="حفظ كلمة المرور والعودة للدخول"

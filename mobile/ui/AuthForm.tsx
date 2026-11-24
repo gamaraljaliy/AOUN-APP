@@ -3,6 +3,7 @@ import { Pressable, View } from "react-native";
 import { useAuth } from "../auth/context";
 import { db, readProfile, errorText } from "../services/supabase";
 import * as Linking from "expo-linking";
+import { ConfirmationResend } from "./ConfirmationResend";
 import {
   Btn,
   C,
@@ -25,8 +26,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
   const [role, setRole] = useState<"member" | "admin">("member");
   const [busy, setBusy] = useState(false);
   const [registrationResult, setRegistrationResult] = useState<
-    "ready" | "profile-error" | null
+    "ready" | "profile-error" | "confirmation" | null
   >(null);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const tr = useCopy();
   const [attempted, setAttempted] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -71,6 +73,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
     setAttempted(true);
     setMsg("");
     if (busy || registrationResult || Object.values(errors).some(Boolean)) return;
+    setNeedsConfirmation(false);
     setBusy(true);
     try {
       const client = db();
@@ -97,6 +100,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
         : await client.auth.signInWithPassword({ email: key, password });
       if (result.error) {
         const code = result.error.code;
+        setNeedsConfirmation(code === "email_not_confirmed");
         setMsg(
           reg && (code === "user_already_exists" || code === "email_exists")
             ? "هذا البريد مسجل بالفعل. سجّلي الدخول أو استعيدي كلمة المرور."
@@ -113,11 +117,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
         return;
       }
       if (!result.data.session) {
-        setMsg(
-          reg
-            ? "راجعي بريدك لتأكيد الحساب، ثم سجّلي الدخول."
-            : "تعذّر تسجيل الدخول. حاولي مجددًا.",
-        );
+        if (reg) {
+          setPassword("");
+          setConfirm("");
+          setRegistrationResult("confirmation");
+        } else setMsg("تعذّر تسجيل الدخول. حاولي مجددًا.");
         return;
       }
       let profile: Awaited<ReturnType<typeof readProfile>>;
@@ -174,17 +178,32 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
   }
   if (registrationResult) {
     const ready = registrationResult === "ready";
+    const pending = registrationResult === "confirmation";
     return (
       <Shell brand>
         <View style={{ gap: 18, paddingVertical: 32 }}>
           <T center bold size={28}>
-            {ready ? "تم إنشاء الحساب بنجاح" : "تم إنشاء الحساب، لكن تعذّر تحميل ملفك."}
+            {pending
+              ? "تحققي من بريدك لإكمال التسجيل"
+              : ready
+                ? "تم إنشاء الحساب بنجاح"
+                : "تم إنشاء الحساب، لكن تعذّر تحميل ملفك."}
           </T>
           <T center color={C.muted}>
-            {ready
-              ? "حسابك جاهز. يمكنك الآن استخدام عون."
-              : "سجّلي الدخول بالمعلومات نفسها للمحاولة مجددًا."}
+            {pending
+              ? "راجعي بريدك وافتحي أحدث رابط تأكيد على الجهاز والمتصفح نفسيهما لإكمال التسجيل."
+              : ready
+                ? "حسابك جاهز. يمكنك الآن استخدام عون."
+                : "سجّلي الدخول بالمعلومات نفسها للمحاولة مجددًا."}
           </T>
+          {pending && (
+            <>
+              <ConfirmationResend email={key} />
+              <T center color={C.muted}>
+                إذا كان لديك حساب سابق بهذا البريد، سجّلي الدخول.
+              </T>
+            </>
+          )}
           <Btn
             label={ready ? "متابعة إلى التطبيق" : "العودة إلى تسجيل الدخول"}
             onPress={() => replace(ready ? "/home" : "/login")}
@@ -277,6 +296,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
           onChangeText={(value) => {
             setEmail(value);
             setMsg("");
+            setNeedsConfirmation(false);
           }}
         />
         {!reset && (
@@ -329,6 +349,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
           <Link label="نسيت كلمة المرور؟" onPress={() => go("/reset")} />
         )}
         <Message text={msg} />
+        {needsConfirmation && <ConfirmationResend key={key} email={key} />}
         <Btn
           label={
             login ? title : reg ? "إنشاء حساب في عون" : "إرسال رابط الاستعادة"

@@ -223,6 +223,46 @@ export const english: Record<string, string> = {
   "تعذّر تسجيل الدخول. حاولي مجددًا.": "Could not sign in. Please try again.",
   "راجعي بريدك لتأكيد الحساب، ثم سجّلي الدخول.":
     "Check your email to confirm your account, then sign in.",
+  "إذا كان البريد مسجلًا، سيصلك رابط استعادة كلمة المرور.":
+    "If this email is registered, you will receive a password reset link.",
+  "الحساب معلّق. تواصلي مع إدارة التطبيق.":
+    "This account is suspended. Contact the app administrators.",
+  "اختاري نوع الحساب المطابق لحسابك.": "Select the correct account type.",
+  "تحققي من بريدك لإكمال التسجيل": "Check your email to finish signing up",
+  "راجعي بريدك وافتحي أحدث رابط تأكيد على الجهاز والمتصفح نفسيهما لإكمال التسجيل.":
+    "To finish signing up, open the latest confirmation link from your email on the same device and browser.",
+  "إذا كان لديك حساب سابق بهذا البريد، سجّلي الدخول.":
+    "If you already have an account with this email, sign in.",
+  "أوافق على إنشاء حساب وحفظ بيانات ملفي الشخصي":
+    "I agree to create an account and save my profile information",
+  "انتظري قليلًا قبل طلب رسالة تأكيد أخرى.":
+    "Wait a little before requesting another confirmation email.",
+  "إذا كان الحساب بحاجة إلى تأكيد، سيصلك رابط جديد. افتحي أحدث رابط على الجهاز والمتصفح نفسيهما.":
+    "If this account needs confirmation, you will receive a new link. Open the latest link on the same device and browser.",
+  "إعادة إرسال رابط التأكيد": "Resend confirmation link",
+  "جارٍ التحقق من الرابط…": "Verifying the link…",
+  "تم التحقق من الرابط، لكن تعذّر تحميل ملفك. سجّلي الدخول للمحاولة مجددًا.":
+    "The link was verified, but your profile could not be loaded. Sign in to try again.",
+  "رابط التحقق غير مكتمل. افتحي أحدث رابط من بريدك على الجهاز والمتصفح اللذين طلبتِ منهما الرابط.":
+    "The verification link is incomplete. Open the latest link from your email on the device and browser where you requested it.",
+  "تعذّر التحقق من رابط الاستعادة. اطلبي رابطًا جديدًا وافتحي أحدث رسالة على الجهاز والمتصفح نفسيهما.":
+    "The password reset link could not be verified. Request a new link and open the latest email on the same device and browser.",
+  "تعذّر التحقق من رابط تأكيد البريد. اطلبي رابط تأكيد جديدًا، أو سجّلي الدخول إذا سبق تأكيد حسابك.":
+    "The email confirmation link could not be verified. Request a new confirmation link, or sign in if your account is already confirmed.",
+  "تأكيد البريد الإلكتروني": "Confirm email address",
+  "إرسال رابط استعادة جديد": "Send a new password reset link",
+  "العودة إلى الدخول": "Back to sign in",
+  "أدخلي كلمة مرور متطابقة من ٨ أحرف على الأقل، تتضمن حرفًا إنجليزيًا كبيرًا ورقمًا.":
+    "Enter matching passwords with at least 8 characters, one uppercase letter, and one number.",
+  "تعيين كلمة المرور": "Set password",
+  "جارٍ التحقق…": "Verifying…",
+  "كلمة المرور الجديدة": "New password",
+  "إخفاء كلمة المرور الجديدة": "Hide new password",
+  "إظهار كلمة المرور الجديدة": "Show new password",
+  "إخفاء تأكيد كلمة المرور": "Hide password confirmation",
+  "إظهار تأكيد كلمة المرور": "Show password confirmation",
+  "حفظ كلمة المرور والعودة للدخول": "Save password and return to sign in",
+  "اطلبي رابط استعادة جديدًا": "Request a new password reset link",
   "استعادة كلمة المرور بالبريد غير متاحة في النسخة التجريبية.":
     "Email recovery is unavailable in this demo.",
   "أدخل بريدك الإلكتروني المسجل لاستعادة كلمة المرور.":

@@ -1,51 +1,84 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { Platform } from "react-native";
 import { db, readProfile } from "../../services/supabase";
+import {
+  authLinkKind,
+  createAuthLinkHandler,
+  type AuthLinkResult,
+} from "../../services/auth-links";
+import { ConfirmationResend } from "../../ui/ConfirmationResend";
 import { Btn, Message, Shell, replace } from "../../ui/components";
 
 export default function Callback() {
-  // Router params cover both cold-start links and links opened while the app is running.
-  const {
-    code,
-    flow,
-    error: linkError,
-  } = useLocalSearchParams<{ code?: string; flow?: string; error?: string }>();
-  const handled = useRef(false);
-  const [message, setMessage] = useState("جارٍ التحقق من الرابط…");
-  useEffect(() => {
-    if (handled.current) return;
-    handled.current = true;
-    void (async () => {
-      try {
-        if (!code || linkError) throw new Error("Invalid link");
-        const { data, error } = await db().auth.exchangeCodeForSession(code);
-        if (error || !data.session) throw error;
-        if (Platform.OS === "web")
-          window.history.replaceState({}, "", window.location.pathname);
-        const profile = await readProfile(data.session.user.id);
-        if (profile.status !== "active") {
+  const { code, flow, error, error_code } = useLocalSearchParams<{
+    code?: string;
+    flow?: string;
+    error?: string;
+    error_code?: string;
+  }>();
+  const [result, setResult] = useState<AuthLinkResult | null>(null);
+  const handleLink = useMemo(
+    () =>
+      createAuthLinkHandler({
+        exchange: async (value) => {
+          const { data, error } = await db().auth.exchangeCodeForSession(value);
+          if (error || !data.session) throw error ?? new Error("Missing session");
+          return data.session.user.id;
+        },
+        readProfile,
+        signOut: async () => {
           await db().auth.signOut({ scope: "local" });
-          throw new Error("Suspended");
-        }
-        replace(
-          flow === "recovery"
-            ? "/update-password"
-            : profile.role === "admin"
-              ? "/admin/places"
-              : "/home",
-        );
-      } catch {
-        setMessage(
-          "الرابط غير صالح أو انتهت صلاحيته. اطلبي رابطًا جديدًا وافتحيه على الجهاز والمتصفح اللذين طلبتِ منهما الرابط.",
+        },
+      }),
+    [],
+  );
+  useEffect(() => {
+    let current = true;
+    setResult(null);
+    void handleLink({ code, flow, error: error || error_code }).then((next) => {
+      if (!current) return;
+      if (next.status !== "link-error" && Platform.OS === "web") {
+        // The code has been consumed. Keep the purpose, but remove credentials.
+        window.history.replaceState(
+          window.history.state,
+          "",
+          window.location.pathname +
+            (next.kind === "recovery" ? "?flow=recovery" : ""),
         );
       }
-    })();
-  }, [code, flow, linkError]);
+      setResult(next);
+      if (next.status === "ready") replace(next.destination);
+    });
+    return () => {
+      current = false;
+    };
+  }, [code, flow, error, error_code, handleLink]);
+
+  const kind = result?.kind ?? authLinkKind(flow);
+  const message =
+    !result || result.status === "ready"
+      ? "جارٍ التحقق من الرابط…"
+      : result.status === "suspended"
+        ? "الحساب معلّق. تواصلي مع إدارة التطبيق."
+        : result.status === "profile-error"
+          ? "تم التحقق من الرابط، لكن تعذّر تحميل ملفك. سجّلي الدخول للمحاولة مجددًا."
+          : result.reason === "missing"
+            ? "رابط التحقق غير مكتمل. افتحي أحدث رابط من بريدك على الجهاز والمتصفح اللذين طلبتِ منهما الرابط."
+            : kind === "recovery"
+              ? "تعذّر التحقق من رابط الاستعادة. اطلبي رابطًا جديدًا وافتحي أحدث رسالة على الجهاز والمتصفح نفسيهما."
+              : "تعذّر التحقق من رابط تأكيد البريد. اطلبي رابط تأكيد جديدًا، أو سجّلي الدخول إذا سبق تأكيد حسابك.";
   return (
-    <Shell title="التحقق من البريد">
+    <Shell
+      title={kind === "recovery" ? "استعادة كلمة المرور" : "تأكيد البريد الإلكتروني"}
+    >
       <Message text={message} />
-      <Btn label="إرسال رابط استعادة جديد" onPress={() => replace("/reset")} />
+      {result?.status === "link-error" &&
+        (kind === "recovery" ? (
+          <Btn label="إرسال رابط استعادة جديد" onPress={() => replace("/reset")} />
+        ) : (
+          <ConfirmationResend />
+        ))}
       <Btn label="العودة إلى الدخول" onPress={() => replace("/login")} />
     </Shell>
   );
