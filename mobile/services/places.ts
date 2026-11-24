@@ -5,6 +5,7 @@ export type Place = {
   name_en?: string;
   category_en?: string;
   level: string | null;
+  photo_path?: string | null;
 };
 export type Detail = Place & {
   name_en: string;
@@ -14,7 +15,6 @@ export type Detail = Place & {
   description_en: string | null;
   latitude: number | null;
   longitude: number | null;
-  photo_path: string | null;
   average_rating: number | null;
 
   facilities: {
