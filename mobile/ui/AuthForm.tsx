@@ -4,7 +4,6 @@ import { adminEmail, memberEmail, useDemo } from "./demo";
 import {
   Btn,
   C,
-  Card,
   Chip,
   Field,
   FieldError,
@@ -24,7 +23,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
   const tr = useCopy();
   const [attempted, setAttempted] = useState(false);
   const [duplicate, setDuplicate] = useState("");
-  const [demoOpen, setDemoOpen] = useState(false);
+  const [role, setRole] = useState<"member" | "admin">("member");
   const [showConfirm, setShowConfirm] = useState(false);
   const [email, setEmail] = useState(""),
     [name, setName] = useState(""),
@@ -86,6 +85,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
       d.accounts.some((a) => a.email === key && a.suspended)
     ) {
       setMsg("تحققي من بيانات الدخول وحالة الحساب.");
+      return;
+    }
+    if (login && (key === adminEmail) !== (role === "admin")) {
+      setMsg("اختاري نوع الحساب المطابق لبريدك.");
       return;
     }
     d.setEmail(key);
@@ -152,6 +155,39 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
                 ? "أدخل بريدك الإلكتروني المسجل لاستعادة كلمة المرور."
                 : "سجّل دخولك لزيارة مفضلاتك وتقييمات الوصول."}
             </T>
+          </View>
+        )}
+        {login && (
+          <View style={{ gap: 8 }}>
+            <T bold>نوع الحساب</T>
+            <View style={{ flexDirection: "row-reverse", gap: 8 }}>
+              {(["member", "admin"] as const).map((option) => (
+                <Chip
+                  key={option}
+                  label={option === "admin" ? "مشرف" : "مستخدم"}
+                  active={role === option}
+                  onPress={() => {
+                    if (role === option) return;
+                    setRole(option);
+                    setEmail("");
+                    setPassword("");
+                    setMsg("");
+                    setAttempted(false);
+                  }}
+                />
+              ))}
+            </View>
+            <Btn
+              kind="soft"
+              label={role === "admin" ? "تعبئة حساب المشرف التجريبي" : "تعبئة حساب المستخدم التجريبي"}
+              onPress={() => {
+                const mail = role === "admin" ? adminEmail : memberEmail;
+                setEmail(mail);
+                setPassword(d.passwords.current[mail]);
+                setMsg("");
+                setAttempted(false);
+              }}
+            />
           </View>
         )}
         {reg && (
@@ -247,31 +283,6 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
               }}
             />
             <Link label="إنشاء حساب جديد" onPress={() => go("/register")} />
-            <Link
-              label="حسابات التجربة"
-              onPress={() => setDemoOpen(!demoOpen)}
-            />
-            {demoOpen && (
-              <Card>
-                <T size={14}>تجربة محلية · اختاري حسابًا لتعبئة بيانات الدخول</T>
-                <View style={{ flexDirection: "row-reverse", gap: 8 }}>
-                  {[
-                    [memberEmail, "عضو"],
-                    [adminEmail, "مسؤول"],
-                  ].map(([mail, label]) => (
-                    <Chip
-                      key={mail}
-                      label={label}
-                      onPress={() => {
-                        setEmail(mail);
-                        setPassword("AounDemo1");
-                        setMsg("");
-                      }}
-                    />
-                  ))}
-                </View>
-              </Card>
-            )}
           </>
         )}
         {!login && (

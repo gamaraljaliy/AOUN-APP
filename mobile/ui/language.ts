@@ -4,6 +4,12 @@ export const english: Record<string, string> = {
     "The AOUN team reviews reports to update place information.",
   "لا توجد أماكن بإحداثيات مسجلة لعرضها على الخريطة.":
     "No places have coordinates to display on the map.",
+  "نوع الحساب": "Account type",
+  مستخدم: "User",
+  مشرف: "Administrator",
+  "تعبئة حساب المشرف التجريبي": "Fill in the demo administrator account",
+  "تعبئة حساب المستخدم التجريبي": "Fill in the demo user account",
+  "اختاري نوع الحساب المطابق لبريدك.": "Select the account type that matches your email.",
   الرئيسية: "Home",
   الخريطة: "Map",
   المفضلة: "Favorites",
