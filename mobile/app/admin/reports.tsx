@@ -1,83 +1,62 @@
 import { useState } from "react";
 import { View } from "react-native";
-import { useDemo } from "../../ui/demo";
-import { Btn, Card, Chip, S, Shell, T, Title } from "../../ui/components";
+import { list, setReportStatus, type AdminReport } from "../../services/admin";
+import { useAdminData, AdminFeedback } from "../../ui/admin";
+import { Btn, Card, Chip, S, Shell, T } from "../../ui/components";
+const statuses: Record<string, string> = {
+  submitted: "تم الإرسال",
+  under_review: "قيد المراجعة",
+  resolved: "تم الحل",
+  rejected: "مرفوض",
+};
+const kinds: Record<string, string> = {
+  incorrect: "معلومة خاطئة",
+  missing: "معلومة ناقصة",
+  outdated: "معلومة قديمة",
+};
+const load = () => list<AdminReport>("reports", "*,places(name_ar)");
 export default function Reports() {
-  const d = useDemo(),
-    [filter, setFilter] = useState("الكل"),
-    [id, select] = useState<number | null>(null),
-    [next, setNext] = useState("");
-  const rows = d.reports.filter(
-    (r) => filter === "الكل" || r.status === filter,
+  const state = useAdminData(load),
+    [filter, setFilter] = useState("all");
+  const rows = (state.data ?? []).filter(
+    (r) => filter === "all" || r.status === filter,
   );
-  const report = rows.find((r) => r.id === id);
   return (
     <Shell admin nav title="مراجعة البلاغات">
+      <AdminFeedback state={state} />
       <View style={S.wrap}>
-        {["الكل", "تم الإرسال", "قيد المراجعة", "تم الحل", "مرفوض"].map((f) => (
+        {Object.entries({ all: "الكل", ...statuses }).map(([v, l]) => (
           <Chip
-            label={f}
-            key={f}
-            active={filter === f}
-            onPress={() => {
-              setFilter(f);
-              select(null);
-            }}
+            key={v}
+            label={l}
+            active={filter === v}
+            onPress={() => setFilter(v)}
           />
         ))}
       </View>
       {rows.map((r) => (
         <Card key={r.id}>
-          <Title>{r.kind}</Title>
-          <T>{r.placeName ?? d.places.find((p) => p.id === r.placeId)?.name}</T>
-          <T>{r.text}</T>
-          <Chip
-            label={r.status}
-            onPress={() => {
-              select(r.id);
-              setNext("");
-            }}
-          />
-          {r.status !== "تم الحل" && r.status !== "مرفوض" && (
-            <Btn
-              kind="soft"
-              label="تغيير حالة البلاغ"
-              onPress={() => {
-                select(r.id);
-                setNext("");
-              }}
-            />
-          )}
-        </Card>
-      ))}
-      {!rows.length && <T>لا توجد بلاغات بهذه الحالة.</T>}
-      {report && report.status !== "تم الحل" && report.status !== "مرفوض" && (
-        <Card>
-          <Title>تغيير حالة البلاغ</Title>
-          <View style={S.wrap}>
-            {["قيد المراجعة", "تم الحل", "مرفوض"]
-              .filter((x) => x !== report.status)
-              .map((x) => (
-                <Chip
-                  key={x}
-                  label={x}
-                  active={next === x}
-                  onPress={() => setNext(x)}
+          <T bold>{kinds[r.issue_type]}</T>
+          <T>{r.places?.name_ar ?? "رقم المكان: " + r.place_id}</T>
+          <T>{r.description}</T>
+          <T>{statuses[r.status]}</T>
+          {!["resolved", "rejected"].includes(r.status) &&
+            Object.entries(statuses)
+              .filter(([v]) => v !== "submitted" && v !== r.status)
+              .map(([v, l]) => (
+                <Btn
+                  key={v}
+                  disabled={state.busy}
+                  label={l}
+                  onPress={() =>
+                    void state.mutate(() => setReportStatus(r.id, r.status, v))
+                  }
                 />
               ))}
-          </View>
-          <Btn
-            disabled={!next}
-            label="حفظ الحالة الجديدة"
-            onPress={() => {
-              d.setReports((v) =>
-                v.map((r) => (r.id === id ? { ...r, status: next } : r)),
-              );
-              select(null);
-              setNext("");
-            }}
-          />
         </Card>
+      ))}
+      {!state.loading && !state.error && !rows.length && (
+        <T>لا توجد بلاغات بهذه الحالة.</T>
       )}
     </Shell>
   );

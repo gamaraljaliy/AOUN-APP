@@ -1,83 +1,72 @@
 import { useState } from "react";
-import { View } from "react-native";
+import { useAuth } from "../../auth/context";
+import { list, remove, type AdminPlace } from "../../services/admin";
+import { useAdminData, AdminFeedback } from "../../ui/admin";
 import {
   Btn,
   Card,
   Field,
-  Link,
-  Round,
-  S,
+  Message,
   Shell,
   T,
-  Title,
   go,
   replace,
 } from "../../ui/components";
-import { useDemo } from "../../ui/demo";
+const load = () =>
+  list<AdminPlace>("places", "*,place_facilities(facility_id,status)");
 export default function Places() {
-  const d = useDemo(),
-    [q, setQ] = useState(""),
-    [deleting, setDelete] = useState<number | null>(null);
-  const rows = d.places.filter((p) => p.name.includes(q));
+  const state = useAdminData(load),
+    auth = useAuth();
+  const [q, setQ] = useState(""),
+    [selected, setSelected] = useState<number | null>(null),
+    [message, setMessage] = useState("");
+  const rows = (state.data ?? []).filter((p) =>
+    (p.name_ar + p.name_en).toLowerCase().includes(q.trim().toLowerCase()),
+  );
   return (
-    <Shell
-      admin
-      nav
-      title="إدارة الأماكن"
-      onBack={() => {
-        d.setEmail(null);
-        replace("/welcome");
-      }}
-    >
-      <Field
-        label="بحث"
-        placeholder="ابحث عن مكان مسجل..."
-        value={q}
-        onChangeText={setQ}
-      />
-      <Title>الأماكن المسجلة</Title>
+    <Shell admin nav title="إدارة الأماكن">
+      <AdminFeedback state={state} />
+      <Message text={message} />
+      <Field label="البحث عن مكان" value={q} onChangeText={setQ} />
       {rows.map((p) => (
         <Card key={p.id}>
-          <T bold>{p.name}</T>
-          <T size={14}>
-            {p.category} · {p.address}
-          </T>
-          <View style={S.row}>
-            <Round
-              icon="edit"
-              label={"تعديل " + p.name}
-              onPress={() => go("/admin/place?id=" + p.id)}
-            />
-            <Round
-              icon="trash"
-              label={"حذف " + p.name}
-              onPress={() => setDelete(p.id)}
-            />
-            <Link label="عرض المكان" onPress={() => go("/places/" + p.id)} />
-          </View>
-          {deleting === p.id && (
+          <T bold>{p.name_ar}</T>
+          <T>{p.address ?? ""}</T>
+          <Btn label="تعديل" onPress={() => go("/admin/place?id=" + p.id)} />
+          <Btn label="عرض المكان" onPress={() => go("/live-places/" + p.id)} />
+          {selected === p.id ? (
             <>
               <T>حذف المكان وبياناته المرتبطة؟</T>
               <Btn
+                disabled={state.busy}
                 kind="danger"
                 label="تأكيد حذف المكان"
-                onPress={() => {
-                  d.removePlace(p.id);
-                  setDelete(null);
+                onPress={async () => {
+                  if (await state.mutate(() => remove("places", p.id)))
+                    setSelected(null);
                 }}
               />
-              <Link label="إلغاء" onPress={() => setDelete(null)} />
+              <Btn label="إلغاء" onPress={() => setSelected(null)} />
             </>
+          ) : (
+            <Btn label="حذف" onPress={() => setSelected(p.id)} />
           )}
         </Card>
       ))}
-      {!rows.length && <T>لا توجد نتائج مطابقة.</T>}
+      {!state.loading && !state.error && !rows.length && (
+        <T>لا توجد نتائج مطابقة.</T>
+      )}
       <Btn label="إضافة مكان جديد" onPress={() => go("/admin/place")} />
-      <Link
+      <Btn label="حسابي" onPress={() => go("/profile")} />
+      <Btn
         label="تسجيل الخروج"
-        onPress={() => {
-          d.setEmail(null);
-          replace("/welcome");
+        onPress={async () => {
+          try {
+            await auth.signOut();
+            replace("/welcome");
+          } catch {
+            setMessage("تعذّر تسجيل الخروج. حاولي مجددًا.");
+          }
         }}
       />
     </Shell>

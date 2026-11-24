@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
-import { adminEmail, memberEmail, useDemo } from "./demo";
+import { useAuth } from "../auth/context";
+import { db, readProfile, errorText } from "../services/supabase";
+import * as Linking from "expo-linking";
 import {
   Btn,
   C,
@@ -19,11 +21,11 @@ import {
   replace,
 } from "./components";
 export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
-  const d = useDemo();
+  const auth = useAuth();
+  const [role, setRole] = useState<"member" | "admin">("member");
+  const [busy, setBusy] = useState(false);
   const tr = useCopy();
   const [attempted, setAttempted] = useState(false);
-  const [duplicate, setDuplicate] = useState("");
-  const [role, setRole] = useState<"member" | "admin">("member");
   const [showConfirm, setShowConfirm] = useState(false);
   const [email, setEmail] = useState(""),
     [name, setName] = useState(""),
@@ -62,37 +64,61 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
           : "",
     consent: reg && !consent ? "الموافقة مطلوبة لإنشاء الحساب." : "",
   };
-  function submit() {
+  async function submit() {
     setAttempted(true);
     setMsg("");
-    if (Object.values(errors).some(Boolean)) return;
-    if (reset) {
-      setMsg("استعادة كلمة المرور بالبريد غير متاحة في النسخة التجريبية.");
-      return;
-    }
-    if (reg) {
-      if (d.passwords.current[key]) {
-        setDuplicate(key);
+    if (busy || Object.values(errors).some(Boolean)) return;
+    setBusy(true);
+    try {
+      const client = db();
+      const redirectTo = Linking.createURL("auth/callback");
+      if (reset) {
+        const { error } = await client.auth.resetPasswordForEmail(key, {
+          redirectTo: Linking.createURL("auth/callback", {
+            queryParams: { flow: "recovery" },
+          }),
+        });
+        if (error) throw error;
+        setMsg("إذا كان البريد مسجلًا، سيصلك رابط استعادة كلمة المرور.");
         return;
       }
-      d.passwords.current[key] = password;
-      d.setAccounts((a) => [
-        ...a,
-        { email: key, name: name.trim(), suspended: false },
-      ]);
-    } else if (
-      d.passwords.current[key] !== password ||
-      d.accounts.some((a) => a.email === key && a.suspended)
-    ) {
-      setMsg("تحققي من بيانات الدخول وحالة الحساب.");
-      return;
+      const result = reg
+        ? await client.auth.signUp({
+            email: key,
+            password,
+            options: {
+              data: { display_name: name.trim() },
+              emailRedirectTo: redirectTo,
+            },
+          })
+        : await client.auth.signInWithPassword({ email: key, password });
+      if (result.error) {
+        setMsg(
+          "تعذّر تسجيل الدخول أو إنشاء الحساب. تحققي من البيانات وتأكيد البريد.",
+        );
+        return;
+      }
+      if (!result.data.session) {
+        setMsg("راجعي بريدك لتأكيد الحساب، ثم سجّلي الدخول.");
+        return;
+      }
+      const profile = await readProfile(result.data.session.user.id);
+      if (profile.status !== "active") {
+        await auth.signOut();
+        setMsg("الحساب معلّق. تواصلي مع إدارة التطبيق.");
+        return;
+      }
+      if (login && profile.role !== role) {
+        await auth.signOut();
+        setMsg("اختاري نوع الحساب المطابق لحسابك.");
+        return;
+      }
+      replace(profile.role === "admin" ? "/admin/places" : "/home");
+    } catch (error) {
+      setMsg(errorText(error));
+    } finally {
+      setBusy(false);
     }
-    if (login && (key === adminEmail) !== (role === "admin")) {
-      setMsg("اختاري نوع الحساب المطابق لبريدك.");
-      return;
-    }
-    d.setEmail(key);
-    replace(key === adminEmail ? "/admin/places" : "/home");
   }
   function eye(shown: boolean, toggle: () => void) {
     return (
@@ -167,27 +193,14 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
                   label={option === "admin" ? "مشرف" : "مستخدم"}
                   active={role === option}
                   onPress={() => {
-                    if (role === option) return;
-                    setRole(option);
-                    setEmail("");
-                    setPassword("");
-                    setMsg("");
-                    setAttempted(false);
+                    if (!busy) {
+                      setRole(option);
+                      setMsg("");
+                    }
                   }}
                 />
               ))}
             </View>
-            <Btn
-              kind="soft"
-              label={role === "admin" ? "تعبئة حساب المشرف التجريبي" : "تعبئة حساب المستخدم التجريبي"}
-              onPress={() => {
-                const mail = role === "admin" ? adminEmail : memberEmail;
-                setEmail(mail);
-                setPassword(d.passwords.current[mail]);
-                setMsg("");
-                setAttempted(false);
-              }}
-            />
           </View>
         )}
         {reg && (
@@ -201,10 +214,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
         )}
         <Field
           icon="mail"
-          error={
-            (attempted && errors.email) ||
-            (duplicate && duplicate === key ? "البريد مسجل مسبقًا." : undefined)
-          }
+          error={attempted ? errors.email : undefined}
           label="البريد الإلكتروني"
           keyboardType="email-address"
           autoCapitalize="none"
@@ -212,7 +222,6 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
           placeholder="name@example.com"
           onChangeText={(value) => {
             setEmail(value);
-            setDuplicate("");
             setMsg("");
           }}
         />
@@ -255,7 +264,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
               ))}
             </View>
             <Chip
-              label="أوافق على استخدام بيانات تجريبية لهذه الجلسة"
+              label="أوافق على إنشاء حساب وحفظ بيانات ملفي الشخصي"
               active={consent}
               onPress={() => setConsent(!consent)}
             />
@@ -270,6 +279,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
           label={
             login ? title : reg ? "إنشاء حساب في عون" : "إرسال رابط الاستعادة"
           }
+          disabled={busy}
           onPress={submit}
         />
         {login && (
@@ -277,9 +287,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
             <Btn
               kind="soft"
               label="المتابعة كزائر دون تسجيل"
-              onPress={() => {
-                d.setEmail(null);
-                replace("/home");
+              onPress={async () => {
+                try {
+                  if (auth.session) await auth.signOut();
+                  replace("/home");
+                } catch (error) {
+                  setMsg(errorText(error));
+                }
               }}
             />
             <Link label="إنشاء حساب جديد" onPress={() => go("/register")} />

@@ -1,119 +1,182 @@
-import { coordinateError } from "../../ui/validation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
+import { db, errorText } from "../../services/supabase";
 import {
-  type Availability,
-  facilityNames,
-  statusNames,
-  useDemo,
-} from "../../ui/demo";
+  list,
+  savePlace,
+  type AdminPlace,
+  type Category,
+  type FacilityState,
+} from "../../services/admin";
+import { useAdminData, AdminFeedback } from "../../ui/admin";
+import { facilityNames, statusNames } from "../../ui/demo";
 import {
   Btn,
   Chip,
   Field,
+  Message,
   S,
   Shell,
   T,
-  Title,
   replace,
 } from "../../ui/components";
 export default function PlaceForm() {
-  const d = useDemo(),
-    { id } = useLocalSearchParams<{ id?: string }>(),
-    p = d.places.find((x) => x.id === Number(id));
-  const [name, setName] = useState(p?.name ?? ""),
-    [category, setCategory] = useState(p?.category ?? ""),
-    [address, setAddress] = useState(p?.address ?? ""),
-    [lat, setLat] = useState(p ? String(p.lat) : ""),
-    [lon, setLon] = useState(p ? String(p.lon) : ""),
-    [facilities, setFacilities] = useState<Availability[]>(
-      p?.facilities ?? facilityNames.map(() => "unknown"),
-    ),
-    [attempted, setAttempted] = useState(false);
-  const errors = {
-    name: name.trim() ? "" : "أدخل اسم المكان.",
-    category: category.trim() ? "" : "أدخل فئة المكان.",
-    address: address.trim() ? "" : "أدخل العنوان.",
-    lat: coordinateError(lat, 90),
-    lon: coordinateError(lon, 180),
-  };
-  function save() {
-    setAttempted(true);
-    if (Object.values(errors).some(Boolean)) return;
-    const data = {
-      ...p,
-      id: p?.id ?? Date.now(),
-      name: name.trim(),
-      category: category.trim(),
-      address: address.trim(),
-      lat: Number(lat),
-      lon: Number(lon),
-      facilities,
-    };
-    d.setPlaces((v) =>
-      p ? v.map((x) => (x.id === p.id ? data : x)) : [...v, data],
-    );
-    replace("/admin/places");
-  }
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const load = useCallback(async () => {
+    const categories = await list<Category>("categories");
+    let place: AdminPlace | null = null;
+    if (id) {
+      if (!/^\d+$/.test(id)) throw new Error("Invalid place");
+      const { data, error } = await db()
+        .from("places")
+        .select("*,place_facilities(facility_id,status)")
+        .eq("id", Number(id))
+        .single();
+      if (error) throw error;
+      place = data;
+    }
+    return { categories, place };
+  }, [id]);
+  const state = useAdminData(load);
   return (
     <Shell admin title="إضافة / تعديل مكان">
+      <AdminFeedback state={state} />
+      {!state.loading && state.data && (
+        <Editor
+          key={id ?? "new"}
+          place={state.data.place}
+          categories={state.data.categories}
+        />
+      )}
+    </Shell>
+  );
+}
+function Editor({
+  place,
+  categories,
+}: {
+  place: AdminPlace | null;
+  categories: Category[];
+}) {
+  const [nameAr, setNameAr] = useState(place?.name_ar ?? ""),
+    [nameEn, setNameEn] = useState(place?.name_en ?? "");
+  const [category, setCategory] = useState<number | null>(
+    place?.category_id ?? null,
+  );
+  const [address, setAddress] = useState(place?.address ?? ""),
+    [lat, setLat] = useState(place?.latitude?.toString() ?? ""),
+    [lon, setLon] = useState(place?.longitude?.toString() ?? "");
+  const [facilities, setFacilities] = useState<FacilityState[]>(
+    facilityNames.map(
+      (_, i) =>
+        place?.place_facilities.find((f) => f.facility_id === i + 1)?.status ??
+        null,
+    ),
+  );
+  const [busy, setBusy] = useState(false),
+    [message, setMessage] = useState("");
+  async function save() {
+    if (busy) return;
+    if (!nameAr.trim() || !nameEn.trim() || !category) {
+      setMessage("أدخلي اسم المكان باللغتين واختاري الفئة.");
+      return;
+    }
+    const latitude = lat.trim() ? Number(lat) : null,
+      longitude = lon.trim() ? Number(lon) : null;
+    if (
+      (latitude === null) !== (longitude === null) ||
+      (latitude !== null &&
+        (!Number.isFinite(latitude) || Math.abs(latitude) > 90)) ||
+      (longitude !== null &&
+        (!Number.isFinite(longitude) || Math.abs(longitude) > 180))
+    ) {
+      setMessage("أدخلي إحداثيين صالحين معًا، أو اتركيهما فارغين.");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      await savePlace(
+        place?.id ?? null,
+        {
+          name_ar: nameAr.trim(),
+          name_en: nameEn.trim(),
+          category_id: category,
+          address: address.trim() || null,
+          latitude,
+          longitude,
+        },
+        facilities,
+      );
+      replace("/admin/places");
+    } catch (error) {
+      setMessage(errorText(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <>
+      <Message text={message} />
       <Field
-        label="اسم المكان"
-        error={attempted ? errors.name : undefined}
-        value={name}
-        onChangeText={setName}
+        label="اسم المكان بالعربية"
+        value={nameAr}
+        onChangeText={setNameAr}
       />
       <Field
-        label="الفئة"
-        error={attempted ? errors.category : undefined}
-        value={category}
-        onChangeText={setCategory}
+        label="اسم المكان بالإنجليزية"
+        value={nameEn}
+        onChangeText={setNameEn}
       />
-      <Field
-        label="العنوان"
-        error={attempted ? errors.address : undefined}
-        value={address}
-        onChangeText={setAddress}
-      />
-      <View style={S.row}>
-        <View style={{ flex: 1 }}>
-          <Field
-            label="خط العرض"
-            error={attempted ? errors.lat : undefined}
-            value={lat}
-            onChangeText={setLat}
-          />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Field
-            label="خط الطول"
-            error={attempted ? errors.lon : undefined}
-            value={lon}
-            onChangeText={setLon}
-          />
-        </View>
-      </View>
-      <Title>مرافق الإتاحة</Title>
-      <T size={14}>اضغطي على المرفق لتغيير حالته.</T>
+      <T bold>الفئة</T>
       <View style={S.wrap}>
-        {facilityNames.map((n, i) => (
+        {categories.map((c) => (
           <Chip
-            key={n}
-            label={n + " · " + statusNames[facilities[i]]}
+            key={c.id}
+            label={c.name_ar}
+            active={category === c.id}
+            onPress={() => setCategory(c.id)}
+          />
+        ))}
+      </View>
+      <Field label="العنوان" value={address} onChangeText={setAddress} />
+      <Field
+        label="خط العرض (اختياري)"
+        value={lat}
+        onChangeText={setLat}
+        keyboardType="numbers-and-punctuation"
+      />
+      <Field
+        label="خط الطول (اختياري)"
+        value={lon}
+        onChangeText={setLon}
+        keyboardType="numbers-and-punctuation"
+      />
+      <T bold>مرافق الإتاحة</T>
+      <View style={S.wrap}>
+        {facilityNames.map((name, i) => (
+          <Chip
+            key={name}
+            label={name + " · " + statusNames[facilities[i] ?? "unknown"]}
             active={facilities[i] === "available"}
             onPress={() => {
-              const keys = Object.keys(statusNames) as Availability[];
-              setFacilities((all) =>
-                all.map((v, j) =>
-                  j === i ? keys[(keys.indexOf(v) + 1) % keys.length] : v,
+              const states: FacilityState[] = [
+                null,
+                "available",
+                "unavailable",
+                "not_applicable",
+              ];
+              setFacilities((old) =>
+                old.map((v, j) =>
+                  i === j ? states[(states.indexOf(v) + 1) % states.length] : v,
                 ),
               );
             }}
           />
         ))}
       </View>
-      <Btn label="حفظ بيانات المكان" onPress={save} />
-    </Shell>
+      <Btn disabled={busy} label="حفظ بيانات المكان" onPress={save} />
+    </>
   );
 }
