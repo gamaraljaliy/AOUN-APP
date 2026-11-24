@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import type { Place as LivePlace } from "../services/places";
 import { Linking, View } from "react-native";
 import { Btn, C, Card, Chip, Icon, Round, S, T, go } from "./components";
@@ -137,6 +138,14 @@ export function LivePlaceCard({ place }: { place: LivePlace }) {
   const { lang } = useDemo();
   return (
     <Card>
+      {place.photo_path && (
+        <Image
+          source={{ uri: place.photo_path }}
+          style={{ width: "100%", height: 150, borderRadius: 16 }}
+          contentFit="cover"
+          accessibilityLabel={lang === "en" ? place.name_en ?? place.name_ar : place.name_ar}
+        />
+      )}
       <View style={S.row}>
         <Icon name="building" />
         <View style={{ flex: 1 }}>
