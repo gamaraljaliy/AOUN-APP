@@ -1,3 +1,4 @@
+import { useDemo } from "../../ui/demo";
 import { useState } from "react";
 import { useAuth } from "../../auth/context";
 import { list, remove, type AdminPlace } from "../../services/admin";
@@ -15,6 +16,7 @@ import {
 const load = () =>
   list<AdminPlace>("places", "*,place_facilities(facility_id,status)");
 export default function Places() {
+  const { lang } = useDemo();
   const state = useAdminData(load),
     auth = useAuth();
   const [q, setQ] = useState(""),
@@ -30,7 +32,7 @@ export default function Places() {
       <Field label="البحث عن مكان" value={q} onChangeText={setQ} />
       {rows.map((p) => (
         <Card key={p.id}>
-          <T bold>{p.name_ar}</T>
+          <T bold>{lang === "en" ? p.name_en : p.name_ar}</T>
           <T>{p.address ?? ""}</T>
           <Btn label="تعديل" onPress={() => go("/admin/place?id=" + p.id)} />
           <Btn label="عرض المكان" onPress={() => go("/live-places/" + p.id)} />

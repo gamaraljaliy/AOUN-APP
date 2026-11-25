@@ -1,22 +1,17 @@
+import PlaceMap from "../ui/PlaceMap";
 import { coordinateError } from "../ui/validation";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Linking, Pressable, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Linking,
+  ScrollView,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import * as Location from "expo-location";
 import { useLocalSearchParams } from "expo-router";
 import { useDemo } from "../ui/demo";
-import {
-  Btn,
-  C,
-  Card,
-  Chip,
-  Field,
-  Icon,
-  Message,
-  S,
-  Shell,
-  T,
-  go,
-} from "../ui/components";
+import { Btn, Card, Field, Message, Shell, T } from "../ui/components";
 import { LivePlaceCard } from "../ui/places";
 import {
   searchPlaces,
@@ -27,8 +22,10 @@ import {
 export default function Nearby() {
   const d = useDemo();
   const params = useLocalSearchParams<{ place?: string }>();
-  const [map, setMap] = useState(true),
-    [id, setId] = useState(Number(params.place)),
+  const { width, height } = useWindowDimensions();
+  const cardWidth = Math.min(570, Math.max(160, width - 56));
+  const strip = useRef<ScrollView>(null);
+  const [id, setId] = useState(Number(params.place)),
     [manual, setManual] = useState(false),
     [lat, setLat] = useState(""),
     [lon, setLon] = useState(""),
@@ -60,7 +57,7 @@ export default function Nearby() {
     return () => controller.abort();
   }, [d.origin.lat, d.origin.lon, attempt]);
   const byId = new Map(places.map((place) => [place.id, place]));
-  const pinById = new Map(pins.map((pin) => [pin.place_id, pin]));
+
   const rows = pins.flatMap((pin) => {
     const place = byId.get(pin.place_id);
     return place
@@ -110,15 +107,24 @@ export default function Nearby() {
     setManual(false);
     setMsg("تم تحديث الموقع.");
   }
-  const minLat = Math.min(...rows.map((x) => x.lat)),
-    maxLat = Math.max(...rows.map((x) => x.lat)),
-    minLon = Math.min(...rows.map((x) => x.lon)),
-    maxLon = Math.max(...rows.map((x) => x.lon));
+  const selectedIndex = rows.findIndex((row) => row.id === p?.id);
+  useEffect(() => {
+    if (selectedIndex >= 0)
+      strip.current?.scrollTo({
+        x: selectedIndex * (cardWidth + 10),
+        animated: true,
+      });
+  }, [selectedIndex, cardWidth]);
   return (
     <Shell nav title="الخريطة">
-      <View style={S.row}>
-        <Chip label="الخريطة" active={map} onPress={() => setMap(true)} />
-        <Chip label="القائمة" active={!map} onPress={() => setMap(false)} />
+      <View style={{ borderRadius: 18, overflow: "hidden" }}>
+        <PlaceMap
+          pins={rows}
+          selected={p?.id}
+          center={d.origin}
+          onSelect={setId}
+          height={Math.max(220, Math.min(480, height * 0.47))}
+        />
       </View>
       {loading ? (
         <ActivityIndicator />
@@ -127,67 +133,36 @@ export default function Nearby() {
           <T>تعذّر تحميل الأماكن.</T>
           <Btn label="إعادة المحاولة" onPress={() => retry((n) => n + 1)} />
         </Card>
-      ) : map && !rows.length ? (
-        <Card>
-          <T>لا توجد أماكن بإحداثيات مسجلة لعرضها على الخريطة.</T>
-          <Btn label="القائمة" onPress={() => setMap(false)} />
-        </Card>
-      ) : map ? (
-        <>
-          <View
-            style={{
-              height: 300,
-              borderRadius: 18,
-              backgroundColor: "#EFF3F1",
-              overflow: "hidden",
-            }}
-          >
-            {Array.from({ length: 20 }, (_, i) => (
-              <View
-                key={i}
-                style={{
-                  position: "absolute",
-                  left: ((i % 4) * 26 - 4 + "%") as `${number}%`,
-                  top: (Math.floor(i / 4) * 23 - 5 + "%") as `${number}%`,
-                  width: "24%",
-                  height: "20%",
-                  borderRadius: 5,
-                  borderWidth: 2,
-                  borderColor: "white",
-                  backgroundColor: i % 4 === 0 ? "#AFDCD1" : "#E3EBE7",
-                }}
-              />
-            ))}
-            {rows.map((x) => (
-              <Pressable
-                key={x.id}
-                accessibilityRole="button"
-                accessibilityLabel={x.name}
-                onPress={() => setId(x.id)}
-                style={{
-                  position: "absolute",
-                  left: (8 +
-                    (70 * (x.lon - minLon)) / (maxLon - minLon || 1) +
-                    "%") as `${number}%`,
-                  top: (10 +
-                    (65 * (maxLat - x.lat)) / (maxLat - minLat || 1) +
-                    "%") as `${number}%`,
-                  backgroundColor: x.id === p?.id ? C.lav : "white",
-                  padding: 9,
-                  borderRadius: 24,
-                }}
-              >
-                <Icon name="marker" />
-              </Pressable>
-            ))}
-          </View>
-          {p && <LivePlaceCard place={p.place} />}
-        </>
+      ) : !rows.length ? (
+        <T>لا توجد أماكن بإحداثيات مسجلة لعرضها على الخريطة.</T>
       ) : (
-        [
-          ...rows.map((row) => row.place),
-          ...places.filter((place) => !pinById.has(place.id)),
-        ].map((place) => <LivePlaceCard key={place.id} place={place} />)
+        <ScrollView
+          ref={strip}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ direction: "ltr" }}
+          contentContainerStyle={{ gap: 10 }}
+          snapToInterval={cardWidth + 10}
+          decelerationRate="fast"
+          onMomentumScrollEnd={(event) => {
+            const index = Math.min(
+              rows.length - 1,
+              Math.max(
+                0,
+                Math.round(
+                  event.nativeEvent.contentOffset.x / (cardWidth + 10),
+                ),
+              ),
+            );
+            if (rows[index]) setId(rows[index].id);
+          }}
+        >
+          {rows.map((row) => (
+            <View key={row.id} style={{ width: cardWidth }}>
+              <LivePlaceCard place={row.place} />
+            </View>
+          ))}
+        </ScrollView>
       )}
       <Card>
         <T bold>{d.origin.label}</T>

@@ -1,7 +1,18 @@
 import { Image } from "expo-image";
 import type { Place as LivePlace } from "../services/places";
-import { Linking, View } from "react-native";
-import { Btn, C, Card, Chip, Icon, Round, S, T, go } from "./components";
+import { Linking, Pressable, Text, View } from "react-native";
+import {
+  Btn,
+  C,
+  Card,
+  Chip,
+  Icon,
+  Round,
+  S,
+  T,
+  go,
+  useCopy,
+} from "./components";
 import { distance, level, type Place, useDemo } from "./demo";
 export function PlaceCard({
   p,
@@ -124,58 +135,92 @@ export const levelLabels: Record<string, string> = {
 export function LiveFavoriteButton({ place }: { place: LivePlace }) {
   const { user, liveFavorites, toggleLiveFavorite } = useDemo();
   const saved = liveFavorites.some((item) => item.id === place.id);
+  const tr = useCopy();
   return (
-    <Btn
-      icon="heart"
-      kind={saved ? "mint" : "outline"}
-      label={saved ? "إزالة من المفضلة" : "حفظ في المفضلة"}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={tr(saved ? "إزالة من المفضلة" : "حفظ في المفضلة")}
+      accessibilityState={{ selected: saved }}
       onPress={() => (user ? toggleLiveFavorite(place) : go("/login"))}
-    />
+      style={{
+        width: 44,
+        height: 44,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text
+        allowFontScaling={false}
+        style={{ fontSize: 29, color: saved ? "#C02E48" : C.muted }}
+      >
+        {saved ? "♥" : "♡"}
+      </Text>
+    </Pressable>
   );
 }
 
 export function LivePlaceCard({ place }: { place: LivePlace }) {
   const { lang } = useDemo();
+  const direction = lang === "ar" ? "row-reverse" : "row";
+  const name = lang === "en" ? place.name_en || place.name_ar : place.name_ar;
   return (
-    <Card>
-      {place.photo_path && (
-        <Image
-          source={{ uri: place.photo_path }}
-          style={{ width: "100%", height: 150, borderRadius: 16 }}
-          contentFit="cover"
-          accessibilityLabel={lang === "en" ? place.name_en ?? place.name_ar : place.name_ar}
-        />
-      )}
-      <View style={S.row}>
-        <Icon name="building" />
-        <View style={{ flex: 1 }}>
-          <T bold size={20}>
-            {lang === "en" ? (place.name_en ?? place.name_ar) : place.name_ar}
+    <Card
+      style={{
+        flexDirection: direction,
+        alignItems: "center",
+        padding: 10,
+        gap: 4,
+      }}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={name}
+        onPress={() => go(`/live-places/${place.id}`)}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          flexDirection: direction,
+          gap: 10,
+          alignItems: "center",
+        }}
+      >
+        <View
+          style={{
+            width: "27%",
+            maxWidth: 100,
+            aspectRatio: 1,
+            borderRadius: 12,
+            overflow: "hidden",
+            backgroundColor: C.soft,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          {place.photo_path ? (
+            <Image
+              source={{ uri: place.photo_path }}
+              contentFit="cover"
+              style={{ width: "100%", height: "100%" }}
+            />
+          ) : (
+            <Icon name="building" />
+          )}
+        </View>
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <T bold size={18}>
+            {name}
           </T>
           <T size={14} color={C.muted}>
             {lang === "en"
-              ? (place.category_en ?? place.category_ar)
+              ? place.category_en || place.category_ar
               : place.category_ar}
           </T>
+          <T size={13}>
+            {levelLabels[place.level ?? ""] ?? "بانتظار المراجعة"}
+          </T>
         </View>
-      </View>
-      <View
-        style={{
-          alignSelf: "flex-end",
-          backgroundColor: place.level === "accessible" ? C.pale : C.gray,
-          paddingHorizontal: 12,
-          paddingVertical: 4,
-          borderRadius: 16,
-        }}
-      >
-        <T size={14}>{levelLabels[place.level ?? ""] ?? "بانتظار المراجعة"}</T>
-      </View>
+      </Pressable>
       <LiveFavoriteButton place={place} />
-      <Btn
-        label="عرض التفاصيل"
-        kind="soft"
-        onPress={() => go(`/live-places/${place.id}`)}
-      />
     </Card>
   );
 }

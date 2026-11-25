@@ -26,7 +26,7 @@ export type AdminReport = {
   description: string;
   status: string;
   status_updated_at: string;
-  places: { name_ar: string } | null;
+  places: { name_ar: string; name_en: string } | null;
 };
 export type AdminReview = {
   id: number;
@@ -35,7 +35,7 @@ export type AdminReview = {
   score: number;
   review_text: string | null;
   profiles: { display_name: string } | null;
-  places: { name_ar: string } | null;
+  places: { name_ar: string; name_en: string } | null;
 };
 export async function accounts(): Promise<Account[]> {
   const rows: Account[] = [];

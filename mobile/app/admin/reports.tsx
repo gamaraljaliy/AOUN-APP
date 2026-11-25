@@ -1,3 +1,4 @@
+import { useDemo } from "../../ui/demo";
 import { useState } from "react";
 import { View } from "react-native";
 import { list, setReportStatus, type AdminReport } from "../../services/admin";
@@ -14,8 +15,9 @@ const kinds: Record<string, string> = {
   missing: "معلومة ناقصة",
   outdated: "معلومة قديمة",
 };
-const load = () => list<AdminReport>("reports", "*,places(name_ar)");
+const load = () => list<AdminReport>("reports", "*,places(name_ar,name_en)");
 export default function Reports() {
+  const { lang } = useDemo();
   const state = useAdminData(load),
     [filter, setFilter] = useState("all");
   const rows = (state.data ?? []).filter(
@@ -37,7 +39,10 @@ export default function Reports() {
       {rows.map((r) => (
         <Card key={r.id}>
           <T bold>{kinds[r.issue_type]}</T>
-          <T>{r.places?.name_ar ?? "رقم المكان: " + r.place_id}</T>
+          <T>
+            {(lang === "en" ? r.places?.name_en : r.places?.name_ar) ??
+              String(r.place_id)}
+          </T>
           <T>{r.description}</T>
           <T>{statuses[r.status]}</T>
           {!["resolved", "rejected"].includes(r.status) &&
