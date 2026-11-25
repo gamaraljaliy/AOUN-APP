@@ -64,12 +64,15 @@ function useAuthState() {
     setProfile(null);
     setSession(null);
   }
-  async function saveProfile(name: string, language: "ar" | "en") {
-    if (!session || !name.trim()) throw new Error("Invalid profile");
+  async function saveProfile(
+    changes: Partial<Pick<Profile, "display_name" | "preferred_language">>,
+  ) {
+    if (!session || changes.display_name === "")
+      throw new Error("Invalid profile");
     const version = revision.current;
     const { data, error } = await db()
       .from("profiles")
-      .update({ display_name: name.trim(), preferred_language: language })
+      .update(changes)
       .eq("id", session.user.id)
       .select("*")
       .single();

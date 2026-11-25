@@ -225,12 +225,13 @@ export function Field({
   trailing?: React.ReactNode;
 }) {
   const tr = useCopy();
+  const { lang } = useDemo();
   return (
     <View style={{ gap: 5 }}>
       <T bold size={15}>
         {label}
       </T>
-      <View style={[S.inputRow, error ? { borderColor: C.red } : undefined]}>
+      <View style={[S.inputRow, { flexDirection: lang === "ar" ? "row-reverse" : "row" }, error ? { borderColor: C.red } : undefined]}>
         {icon && <Icon name={icon} size={18} />}
         <TextInput
           {...props}
@@ -240,6 +241,7 @@ export function Field({
           placeholderTextColor={C.muted}
           style={[
             S.field,
+            { textAlign: lang === "ar" ? "right" : "left" },
             props.multiline && { height: 105, textAlignVertical: "top" },
             props.style,
           ]}
@@ -316,12 +318,13 @@ export function Shell({
         </View>
       </SafeAreaView>
     );
+  const direction = { flexDirection: d.lang === "ar" ? "row-reverse" : "row" } as const;
   return (
     <SafeAreaView style={S.page}>
       {(title || brand || onBack) && (
-        <View style={S.header}>
+        <View style={[S.header, direction]}>
           {brand ? (
-            <View style={[S.row, { flex: 1 }]}>
+            <View style={[S.row, direction, { flex: 1 }]}>
               <Logo size={46} />
               <T size={33} bold>
                 {title ?? "عون"}
@@ -361,7 +364,7 @@ export function Shell({
         {children}
       </ScrollView>
       {nav && (
-        <View style={S.tabs}>
+        <View style={[S.tabs, direction]}>
           {(admin ? adminTabs : tabs).map(([url, label, icon]) => (
             <Pressable
               key={url}

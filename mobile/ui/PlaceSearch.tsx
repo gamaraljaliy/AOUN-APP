@@ -1,52 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, ScrollView, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { searchPlaces, type Place } from "../services/places";
 import { facilityNames, useDemo } from "./demo";
-import {
-  Btn,
-  Card,
-  Chip,
-  Field,
-  Round,
-  S,
-  Shell,
-  T,
-  Title,
-  go,
-} from "./components";
+import { Btn, Card, Chip, Field, Round, S, Shell, T } from "./components";
 import { LivePlaceCard } from "./places";
 
-const categories = ["الكل", "مركز تسوق", "مقهى", "مرافق عامة", "مطعم"];
-
-function initialFacilities(ids?: string, legacyIndex?: string) {
-  const values = ids
-    ? ids.split(",").map(Number)
-    : legacyIndex
-      ? [Number(legacyIndex) + 1]
-      : [];
-  return [
-    ...new Set(
-      values.filter(
-        (id) => Number.isInteger(id) && id >= 1 && id <= facilityNames.length,
-      ),
-    ),
-  ];
-}
+import { initialFacilities } from "./placeFilters";
 
 export function PlaceSearch({ advanced = false }: { advanced?: boolean }) {
-  const { lang, setLang } = useDemo();
+  const { lang } = useDemo();
   const params = useLocalSearchParams<{
     q?: string;
     ids?: string;
     facility?: string;
+    category?: string;
   }>();
   const [query, setQuery] = useState(params.q ?? "");
   const [term, setTerm] = useState(query.trim());
-  const [ids, setIds] = useState(() =>
-    initialFacilities(params.ids, params.facility),
+  const ids = useMemo(
+    () => initialFacilities(params.ids, params.facility),
+    [params.ids, params.facility],
   );
-  const [category, setCategory] = useState("الكل");
+  const category = params.category || "الكل";
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -76,11 +52,10 @@ export function PlaceSearch({ advanced = false }: { advanced?: boolean }) {
 
   function toggleFacility(id: number) {
     setTerm(query.trim());
-    setIds((current) =>
-      current.includes(id)
-        ? current.filter((value) => value !== id)
-        : [...current, id],
-    );
+    const next = ids.includes(id)
+      ? ids.filter((value) => value !== id)
+      : [...ids, id];
+    router.setParams({ ids: next.join(","), facility: "" });
   }
 
   const rows =
@@ -92,17 +67,13 @@ export function PlaceSearch({ advanced = false }: { advanced?: boolean }) {
       brand={!advanced}
       title={advanced ? "البحث والفلترة" : undefined}
       nav
-      action={
-        advanced ? (
-          <Round
-            icon="globe"
-            label="لغة التطبيق"
-            onPress={() => setLang(lang === "ar" ? "en" : "ar")}
-          />
-        ) : undefined
-      }
     >
-      <View style={S.row}>
+      <View
+        style={[
+          S.row,
+          { flexDirection: lang === "en" ? "row" : "row-reverse" },
+        ]}
+      >
         <View style={{ flex: 1 }}>
           <Field
             icon="search"
@@ -115,20 +86,21 @@ export function PlaceSearch({ advanced = false }: { advanced?: boolean }) {
             onSubmitEditing={() => setTerm(query.trim())}
           />
         </View>
-        {!advanced && (
-          <Round
-            icon="sort"
-            label="البحث والفلترة"
-            onPress={() =>
-              go(
-                "/search?q=" +
-                  encodeURIComponent(query) +
-                  "&ids=" +
-                  ids.join(","),
-              )
-            }
-          />
-        )}
+        <Round
+          icon="sort"
+          label="البحث والفلترة"
+          onPress={() =>
+            router.push({
+              pathname: "/filters",
+              params: {
+                from: advanced ? "/search" : "/home",
+                ids: ids.join(","),
+                category,
+                q: query,
+              },
+            })
+          }
+        />
       </View>
       <View>
         <ScrollView
@@ -148,21 +120,6 @@ export function PlaceSearch({ advanced = false }: { advanced?: boolean }) {
           ))}
         </ScrollView>
       </View>
-      {advanced && (
-        <>
-          <View style={S.wrap}>
-            {categories.map((item) => (
-              <Chip
-                key={item}
-                label={item}
-                active={category === item}
-                onPress={() => setCategory(item)}
-              />
-            ))}
-          </View>
-          <Title>نتائج البحث</Title>
-        </>
-      )}
       {loading ? (
         <ActivityIndicator accessibilityLabel="جارٍ تحميل الأماكن" />
       ) : error ? (

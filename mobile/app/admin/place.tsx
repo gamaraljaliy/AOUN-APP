@@ -10,7 +10,7 @@ import {
   type FacilityState,
 } from "../../services/admin";
 import { useAdminData, AdminFeedback } from "../../ui/admin";
-import { facilityNames, statusNames } from "../../ui/demo";
+import { facilityNames, statusNames, useDemo } from "../../ui/demo";
 import {
   Btn,
   Chip,
@@ -20,6 +20,7 @@ import {
   Shell,
   T,
   replace,
+  useCopy,
 } from "../../ui/components";
 export default function PlaceForm() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -59,6 +60,8 @@ function Editor({
   place: AdminPlace | null;
   categories: Category[];
 }) {
+  const { lang } = useDemo();
+  const tr = useCopy();
   const [nameAr, setNameAr] = useState(place?.name_ar ?? ""),
     [nameEn, setNameEn] = useState(place?.name_en ?? "");
   const [category, setCategory] = useState<number | null>(
@@ -134,7 +137,7 @@ function Editor({
         {categories.map((c) => (
           <Chip
             key={c.id}
-            label={c.name_ar}
+            label={lang === "en" ? c.name_en : c.name_ar}
             active={category === c.id}
             onPress={() => setCategory(c.id)}
           />
@@ -158,7 +161,9 @@ function Editor({
         {facilityNames.map((name, i) => (
           <Chip
             key={name}
-            label={name + " · " + statusNames[facilities[i] ?? "unknown"]}
+            label={
+              tr(name) + " · " + tr(statusNames[facilities[i] ?? "unknown"])
+            }
             active={facilities[i] === "available"}
             onPress={() => {
               const states: FacilityState[] = [

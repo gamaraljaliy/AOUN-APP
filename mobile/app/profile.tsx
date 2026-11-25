@@ -21,7 +21,7 @@ export default function Profile() {
     d = useDemo();
   const [editing, setEditing] = useState(false),
     [name, setName] = useState("");
-  const [language, setLanguage] = useState<"ar" | "en">("ar");
+
   const [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false);
   async function save() {
@@ -33,11 +33,25 @@ export default function Profile() {
     setBusy(true);
     setMessage("");
     try {
-      await auth.saveProfile(name, language);
-      d.setLang(language);
+      await auth.saveProfile({ display_name: name.trim() });
       setEditing(false);
       setMessage("تم حفظ التعديلات.");
     } catch (error) {
+      setMessage(errorText(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function changeLanguage(next: "ar" | "en") {
+    if (busy || d.lang === next) return;
+    const previous = d.lang;
+    d.setLang(next);
+    if (auth.profile?.status !== "active") return;
+    setBusy(true);
+    try {
+      await auth.saveProfile({ preferred_language: next });
+    } catch (error) {
+      d.setLang(previous);
       setMessage(errorText(error));
     } finally {
       setBusy(false);
@@ -66,7 +80,6 @@ export default function Profile() {
               label="تعديل الملف الشخصي"
               onPress={() => {
                 setName(auth.profile!.display_name);
-                setLanguage(auth.profile!.preferred_language);
                 setEditing(!editing);
               }}
             />
@@ -77,16 +90,6 @@ export default function Profile() {
                   value={name}
                   onChangeText={setName}
                 />
-                <View style={S.row}>
-                  {(["ar", "en"] as const).map((l) => (
-                    <Chip
-                      key={l}
-                      label={l === "ar" ? "عربي" : "English"}
-                      active={language === l}
-                      onPress={() => setLanguage(l)}
-                    />
-                  ))}
-                </View>
                 <Btn label="حفظ التعديلات" disabled={busy} onPress={save} />
               </>
             )}
@@ -99,12 +102,12 @@ export default function Profile() {
           <Chip
             label="عربي"
             active={d.lang === "ar"}
-            onPress={() => d.setLang("ar")}
+            onPress={() => changeLanguage("ar")}
           />
           <Chip
             label="English"
             active={d.lang === "en"}
-            onPress={() => d.setLang("en")}
+            onPress={() => changeLanguage("en")}
           />
         </View>
       </Card>
