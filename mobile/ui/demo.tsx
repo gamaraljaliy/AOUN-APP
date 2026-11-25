@@ -1,5 +1,4 @@
 import { useAuth } from "../auth/context";
-import type { Place as LivePlace } from "../services/places";
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 export const facilityNames = [
@@ -41,15 +40,6 @@ export type Review = {
   score: number;
   text: string;
   photos: string[];
-};
-export type Report = {
-  id: number;
-  placeId: number;
-  live?: boolean;
-  placeName?: string;
-  kind: string;
-  text: string;
-  status: string;
 };
 const memberEmail = "gamar@example.com";
 const yes: Availability = "available",
@@ -134,32 +124,6 @@ function useDemoState() {
       photos: [],
     },
   ]);
-  const [liveFavoritesByEmail, setLiveFavorites] = useState<
-    Record<string, LivePlace[]>
-  >({});
-  const liveFavorites = email ? (liveFavoritesByEmail[email] ?? []) : [];
-  function toggleLiveFavorite(place: LivePlace) {
-    if (!user || user.suspended) return;
-    setLiveFavorites((previous) => {
-      const saved = previous[user.email] ?? [];
-      const next = saved.some((item) => item.id === place.id)
-        ? saved.filter((item) => item.id !== place.id)
-        : [...saved, place];
-      return { ...previous, [user.email]: next };
-    });
-  }
-  const [favorites, setFavorites] = useState<Record<string, number[]>>({
-    [memberEmail]: [2],
-  });
-  const [reports, setReports] = useState<Report[]>([
-    {
-      id: 1,
-      placeId: 2,
-      kind: "معلومة خاطئة",
-      text: "معلومة المواقف المخصصة تحتاج إلى تحديث.",
-      status: "تم الإرسال",
-    },
-  ]);
   const [origin, setOrigin] = useState({
     lat: 24.7136,
     lon: 46.6753,
@@ -169,27 +133,9 @@ function useDemoState() {
   useEffect(() => {
     if (auth.profile) setLang(auth.profile.preferred_language);
   }, [auth.profile?.id, auth.profile?.preferred_language]);
-  function toggleFavorite(id: number) {
-    if (!email || !user || user.suspended) return;
-    setFavorites((old) => {
-      const list = old[email] ?? [];
-      return {
-        ...old,
-        [email]: list.includes(id)
-          ? list.filter((i) => i !== id)
-          : [...list, id],
-      };
-    });
-  }
   function removePlace(id: number) {
     setPlaces((v) => v.filter((x) => x.id !== id));
     setReviews((v) => v.filter((x) => x.live || x.placeId !== id));
-    setReports((v) => v.filter((x) => x.live || x.placeId !== id));
-    setFavorites((v) =>
-      Object.fromEntries(
-        Object.entries(v).map(([k, ids]) => [k, ids.filter((i) => i !== id)]),
-      ),
-    );
   }
   return {
     email,
@@ -198,13 +144,6 @@ function useDemoState() {
     places,
     setPlaces,
     reviews,
-    setReviews,
-    favorites,
-    toggleFavorite,
-    liveFavorites,
-    toggleLiveFavorite,
-    reports,
-    setReports,
     removePlace,
     origin,
     setOrigin,

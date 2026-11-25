@@ -6,7 +6,11 @@
   "scripts": {
     "start": "expo start",
     "typecheck": "tsc --noEmit",
-    "test:auth": "node --test tests/auth-links.test.cjs"
+    "test:auth": "node --test tests/auth-links.test.cjs",
+    "test:favorites": "node --test tests/favorites.test.cjs",
+    "test:reviews": "node --test tests/reviews.test.cjs",
+    "test:reports": "node --test tests/reports.test.cjs",
+    "test:photos": "node --test tests/review-photos.test.cjs"
   },
   "dependencies": {
     "@expo-google-fonts/baloo-bhaijaan-2": "^0.4.2",
@@ -16,6 +20,7 @@
     "@supabase/supabase-js": "^2.119.2",
     "expo": "~54.0.0",
     "expo-constants": "~18.0.14",
+    "expo-file-system": "~19.0.24",
     "expo-font": "~14.0.12",
     "expo-image": "~3.0.11",
     "expo-image-picker": "~17.0.11",

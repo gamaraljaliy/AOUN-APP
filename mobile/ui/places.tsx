@@ -1,13 +1,13 @@
 import { Image } from "expo-image";
+import { useFavorites } from "../favorites/context";
 import type { Place as LivePlace } from "../services/places";
-import { Linking, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, Text, View } from "react-native";
 import {
   Btn,
   C,
   Card,
   Chip,
   Icon,
-  Round,
   S,
   T,
   go,
@@ -17,15 +17,12 @@ import { distance, level, type Place, useDemo } from "./demo";
 export function PlaceCard({
   p,
   compact = false,
-  favorite = false,
 }: {
   p: Place;
   compact?: boolean;
-  favorite?: boolean;
 }) {
   const d = useDemo();
-  const ratings = d.reviews.filter((r) => !r.live && r.placeId === p.id),
-    saved = d.email && d.favorites[d.email]?.includes(p.id);
+  const ratings = d.reviews.filter((r) => !r.live && r.placeId === p.id);
   const avg = ratings.length
     ? (ratings.reduce((sum, r) => sum + r.score, 0) / ratings.length).toFixed(1)
     : "—";
@@ -38,13 +35,6 @@ export function PlaceCard({
             {p.name}
           </T>
         </View>
-        {(!compact || favorite) && (
-          <Round
-            label={saved ? "إزالة من المفضلة" : "حفظ في المفضلة"}
-            icon="heart"
-            onPress={() => (d.user ? d.toggleFavorite(p.id) : go("/login"))}
-          />
-        )}
       </View>
       <T size={14} color={C.muted}>
         {p.category} ·{" "}
@@ -133,29 +123,57 @@ export const levelLabels: Record<string, string> = {
 };
 
 export function LiveFavoriteButton({ place }: { place: LivePlace }) {
-  const { user, liveFavorites, toggleLiveFavorite } = useDemo();
-  const saved = liveFavorites.some((item) => item.id === place.id);
+  const favorites = useFavorites();
   const tr = useCopy();
+  const saved = favorites.places.some(({ id }) => id === place.id);
+  const busy = favorites.loading || favorites.pendingId === place.id;
+  const disabled =
+    favorites.loading ||
+    favorites.pendingId === place.id ||
+    (favorites.signedIn && !favorites.member);
+  const label = favorites.loadError
+    ? "إعادة محاولة تحميل المفضلة"
+    : saved ? "إزالة من المفضلة" : "حفظ في المفضلة";
+
+  function press() {
+    if (!favorites.signedIn) go("/login");
+    else if (favorites.loadError) favorites.retry();
+    else void favorites.toggle(place);
+  }
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={tr(saved ? "إزالة من المفضلة" : "حفظ في المفضلة")}
-      accessibilityState={{ selected: saved }}
-      onPress={() => (user ? toggleLiveFavorite(place) : go("/login"))}
-      style={{
-        width: 44,
-        height: 44,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Text
-        allowFontScaling={false}
-        style={{ fontSize: 29, color: saved ? "#C02E48" : C.muted }}
+    <View style={{ alignItems: "center" }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={tr(label)}
+        accessibilityState={{ selected: saved, disabled, busy }}
+        disabled={disabled}
+        onPress={press}
+        style={{
+          width: 44,
+          height: 44,
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: disabled ? 0.45 : 1,
+        }}
       >
-        {saved ? "♥" : "♡"}
-      </Text>
-    </Pressable>
+        {busy ? (
+          <ActivityIndicator color={C.muted} />
+        ) : (
+          <Text
+            allowFontScaling={false}
+            style={{ fontSize: 29, color: saved ? "#C02E48" : C.muted }}
+          >
+            {favorites.loadError ? "↻" : saved ? "♥" : "♡"}
+          </Text>
+        )}
+      </Pressable>
+      {favorites.failedIds?.has(place.id) && (
+        <View accessibilityLiveRegion="polite" style={{ maxWidth: 90 }}>
+          <T size={12} center>تعذّر تحديث المفضلة.</T>
+        </View>
+      )}
+    </View>
   );
 }
 
