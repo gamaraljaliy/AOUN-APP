@@ -111,6 +111,10 @@ export default function Profile() {
           />
         </View>
       </Card>
+      <Card>
+        <Btn kind="soft" label="حول عون" onPress={() => go("/about")} />
+        <Btn kind="soft" label="المساعدة" onPress={() => go("/help")} />
+      </Card>
       {auth.session ? (
         <>
           <Btn label="استعادة كلمة المرور" onPress={() => go("/reset")} />
