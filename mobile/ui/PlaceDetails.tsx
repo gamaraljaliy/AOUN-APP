@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ActivityIndicator, Linking, View } from "react-native";
 import { Image } from "expo-image";
+import { router } from "expo-router";
+import { remove } from "../services/admin";
+import { errorText } from "../services/supabase";
 import type { Detail } from "../services/places";
 import { reviewPhotoUri } from "../services/reviewPhotos";
 import {
@@ -11,6 +14,7 @@ import {
   Message,
   S,
   Shell,
+  Round,
   T,
   Title,
   go,
@@ -32,6 +36,26 @@ export function PlaceDetails({
   const d = useDemo();
   const ownRating = useOwnRating(live ? place.id : undefined);
   const [message, setMessage] = useState("");
+  const canManage = live && d.admin;
+  const [actions, setActions] = useState<"closed" | "open" | "confirm">("closed");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const deleteLock = useRef(false);
+  async function deletePlace() {
+    if (!canManage || deleteLock.current) return;
+    deleteLock.current = true;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await remove("places", place.id);
+      router.dismissTo("/admin/places");
+    } catch (error) {
+      setDeleteError(errorText(error));
+    } finally {
+      deleteLock.current = false;
+      setDeleting(false);
+    }
+  }
   const name = d.lang === "ar" ? place.name_ar : place.name_en;
   const category = d.lang === "ar" ? place.category_ar : place.category_en;
   const description =
@@ -68,7 +92,30 @@ export function PlaceDetails({
     go(d.user ? placeFormPath(place.id, action, live, name) : "/login");
   }
   return (
-    <Shell title={name}>
+    <Shell title={name} action={canManage ? (
+      <Round icon="edit" label="إجراءات المكان" onPress={() => {
+        if (deleting) return;
+        setDeleteError("");
+        setActions(actions === "closed" ? "open" : "closed");
+      }} />
+    ) : undefined}>
+      {canManage && actions !== "closed" && (
+        <Card>
+          {actions === "open" ? (
+            <>
+              <Btn label="تعديل" onPress={() => go("/admin/place?id=" + place.id)} />
+              <Btn label="حذف" kind="outline" onPress={() => setActions("confirm")} />
+            </>
+          ) : (
+            <>
+              <T bold>حذف المكان وبياناته المرتبطة؟</T>
+              <Message text={deleteError} />
+              <Btn label="تأكيد حذف المكان" kind="danger" disabled={deleting} onPress={deletePlace} />
+              <Btn label="إلغاء" kind="soft" disabled={deleting} onPress={() => setActions("closed")} />
+            </>
+          )}
+        </Card>
+      )}
       {photo ? (
         <Image
           source={photo}

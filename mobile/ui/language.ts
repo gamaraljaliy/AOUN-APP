@@ -199,6 +199,8 @@ export const english: Record<string, string> = {
   المستخدمون: "Users",
   "إدارة الأماكن": "Manage places",
   "الأماكن المسجلة": "Registered places",
+  "إضافة مكان": "Add place",
+  "إجراءات المكان": "Place actions",
   "إضافة مكان جديد": "Add place",
   "إضافة / تعديل مكان": "Add or edit place",
   "اسم المكان": "Place name",

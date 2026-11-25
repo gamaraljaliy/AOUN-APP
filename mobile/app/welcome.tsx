@@ -1,3 +1,4 @@
+import { WelcomeMotion } from "../ui/WelcomeMotion";
 import { View } from "react-native";
 import { Btn, Logo, Shell, T, go, replace } from "../ui/components";
 import { useAuth } from "../auth/context";
@@ -14,9 +15,9 @@ export default function Welcome() {
           gap: 16,
         }}
       >
-        <View style={{ alignItems: "center" }}>
+        <WelcomeMotion style={{ alignItems: "center" }}>
           <Logo size={205} />
-        </View>
+        </WelcomeMotion>
         <T center bold size={40}>
           أهلًا بك في عون
         </T>

@@ -1,3 +1,4 @@
+import { WelcomeMotion } from "../ui/WelcomeMotion";
 import { useRef, useState } from "react";
 import { View, useWindowDimensions } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -27,7 +28,9 @@ export default function Onboarding() {
       <View style={{ alignSelf: lang === "ar" ? "flex-start" : "flex-end" }}>
         <Btn label="تخطي" kind="soft" onPress={finish} />
       </View>
-      <View
+      <WelcomeMotion
+        key={step.title}
+        horizontalOffset={lang === "ar" ? -24 : 24}
         style={{
           flex: 1,
           alignItems: "center",
@@ -59,7 +62,7 @@ export default function Onboarding() {
             {step.body}
           </T>
         </View>
-      </View>
+      </WelcomeMotion>
       <View
         accessible
         accessibilityLabel={
