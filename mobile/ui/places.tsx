@@ -159,31 +159,19 @@ export function LiveFavoriteButton({ place }: { place: LivePlace }) {
   );
 }
 
+const levelColors: Record<string, string> = {
+  accessible: "#16704D",
+  partially_accessible: "#876900",
+  not_accessible: C.red,
+};
+
 export function LivePlaceCard({ place }: { place: LivePlace }) {
   const { lang } = useDemo();
   const direction = lang === "ar" ? "row-reverse" : "row";
   const name = lang === "en" ? place.name_en || place.name_ar : place.name_ar;
   return (
-    <Card
-      style={{
-        flexDirection: direction,
-        alignItems: "center",
-        padding: 10,
-        gap: 4,
-      }}
-    >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={name}
-        onPress={() => go(`/live-places/${place.id}`)}
-        style={{
-          flex: 1,
-          minWidth: 0,
-          flexDirection: direction,
-          gap: 10,
-          alignItems: "center",
-        }}
-      >
+    <Card style={{ padding: 12, gap: 10 }}>
+      <View style={{ flexDirection: direction, alignItems: "center", gap: 10 }}>
         <View
           style={{
             width: "27%",
@@ -215,12 +203,13 @@ export function LivePlaceCard({ place }: { place: LivePlace }) {
               ? place.category_en || place.category_ar
               : place.category_ar}
           </T>
-          <T size={13}>
+          <T bold size={14} color={levelColors[place.level ?? ""] ?? C.muted}>
             {levelLabels[place.level ?? ""] ?? "بانتظار المراجعة"}
           </T>
         </View>
-      </Pressable>
-      <LiveFavoriteButton place={place} />
+        <LiveFavoriteButton place={place} />
+      </View>
+      <Btn label="تفاصيل المكان" onPress={() => go(`/live-places/${place.id}`)} />
     </Card>
   );
 }
