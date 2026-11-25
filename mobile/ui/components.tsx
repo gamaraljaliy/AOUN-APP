@@ -280,6 +280,7 @@ const adminTabs: [string, string, IconName][] = [
   ["/admin/reports", "البلاغات", "flag"],
   ["/admin/reviews", "المراجعات", "chat"],
   ["/admin/users", "المستخدمون", "people"],
+  ["/profile", "حسابي", "user"],
 ];
 export function Shell({
   title,
