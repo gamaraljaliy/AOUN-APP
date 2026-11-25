@@ -5,9 +5,24 @@ from urllib.parse import quote
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Path, Query
+from fastapi.middleware.cors import CORSMiddleware
+
+from review_photos import router as review_photo_router
 
 load_dotenv()
 app = FastAPI(title="AOUN", version="0.1.0")
+app.include_router(review_photo_router)
+
+photo_web_origins = [
+    origin.strip() for origin in os.getenv("REVIEW_PHOTO_WEB_ORIGINS", "").split(",")
+    if origin.strip() and origin.strip() != "*"
+]
+if photo_web_origins:
+    app.add_middleware(
+        CORSMiddleware, allow_origins=photo_web_origins, allow_methods=["GET", "POST"],
+        allow_headers=["Authorization", "Content-Type"],
+        expose_headers=["X-Review-Photo-Key", "X-Review-Photo-Proof"],
+    )
 
 
 async def rpc(name: str, payload: dict):

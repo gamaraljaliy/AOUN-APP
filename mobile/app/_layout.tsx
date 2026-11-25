@@ -7,7 +7,9 @@ import {
 } from "@expo-google-fonts/baloo-bhaijaan-2";
 import { IBMPlexSansArabic_400Regular } from "@expo-google-fonts/ibm-plex-sans-arabic";
 import { AuthProvider } from "../auth/context";
+import { FavoritesProvider } from "../favorites/context";
 import { DemoProvider } from "../ui/demo";
+import { ReportsProvider } from "../ui/ReportsProvider";
 export default function Layout() {
   const [loaded, error] = useFonts({
     BalooBold: BalooBhaijaan2_700Bold,
@@ -17,15 +19,19 @@ export default function Layout() {
   if (!loaded && !error) return null;
   return (
     <AuthProvider>
-      <DemoProvider>
-        <StatusBar style="dark" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: "white" },
-          }}
-        />
-      </DemoProvider>
+      <FavoritesProvider>
+        <ReportsProvider>
+          <DemoProvider>
+            <StatusBar style="dark" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: "white" },
+              }}
+            />
+          </DemoProvider>
+        </ReportsProvider>
+      </FavoritesProvider>
     </AuthProvider>
   );
 }

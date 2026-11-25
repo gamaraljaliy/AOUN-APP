@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 
 import { getPlaceDetails, type Detail } from "../../services/places";
 import { Btn, Message, Shell } from "../../ui/components";
@@ -13,7 +13,7 @@ export default function LivePlaceDetails() {
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const controller = new AbortController();
 
     async function load() {
@@ -33,7 +33,7 @@ export default function LivePlaceDetails() {
 
     void load();
     return () => controller.abort();
-  }, [id, attempt]);
+  }, [id, attempt]));
 
   if (loading) {
     return (

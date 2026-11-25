@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Linking, View } from "react-native";
+import { ActivityIndicator, Linking, View } from "react-native";
 import { Image } from "expo-image";
 import type { Detail } from "../services/places";
+import { reviewPhotoUri } from "../services/reviewPhotos";
 import {
   Btn,
   C,
@@ -17,6 +18,7 @@ import {
 import { statusNames, useDemo } from "./demo";
 import { levelLabels, LiveFavoriteButton } from "./places";
 import { placeFormPath } from "./placeTarget";
+import { useOwnRating } from "./useOwnRating";
 
 export function PlaceDetails({
   place,
@@ -28,15 +30,16 @@ export function PlaceDetails({
   localPhoto?: boolean;
 }) {
   const d = useDemo();
+  const ownRating = useOwnRating(live ? place.id : undefined);
   const [message, setMessage] = useState("");
   const name = d.lang === "ar" ? place.name_ar : place.name_en;
   const category = d.lang === "ar" ? place.category_ar : place.category_en;
   const description =
     d.lang === "ar" ? place.description_ar : place.description_en;
-  const sessionReviews = d.reviews.filter(
-    (r) => !!r.live === live && r.placeId === place.id,
-  );
-  const mine = sessionReviews.find((r) => r.author === d.email);
+  const sessionReviews = live
+    ? []
+    : d.reviews.filter((r) => !r.live && r.placeId === place.id);
+  const mine = ownRating.result?.status === "ready" && ownRating.result.rating;
   const reviews = [
     ...sessionReviews.map((r) => ({
       key: "session-" + r.id,
@@ -50,10 +53,10 @@ export function PlaceDetails({
       name: r.display_name,
       score: r.score,
       text: r.review_text,
-      photos: r.photo_paths.filter((uri) => /^https?:\/\//i.test(uri)),
+      photos: r.photo_paths.flatMap((path) => reviewPhotoUri(r.id, path) ?? []),
     })),
   ];
-  const avg = reviews.length
+  const avg = !live && reviews.length
     ? reviews.reduce((sum, r) => sum + r.score, 0) / reviews.length
     : place.average_rating;
   const photo = localPhoto
@@ -89,20 +92,7 @@ export function PlaceDetails({
         <T bold>{"★ " + (avg?.toFixed(1) ?? "—")}</T>
       </View>
       {description && <T>{description}</T>}
-      {live ? (
-        <LiveFavoriteButton place={place} />
-      ) : (
-        <Btn
-          kind="soft"
-          icon="heart"
-          label={
-            d.email && d.favorites[d.email]?.includes(place.id)
-              ? "إزالة من المفضلة"
-              : "حفظ في المفضلة"
-          }
-          onPress={() => (d.user ? d.toggleFavorite(place.id) : go("/login"))}
-        />
-      )}
+      {live && <LiveFavoriteButton place={place} />}
       <Title>التفاصيل</Title>
       <Card>
         <T bold size={20}>
@@ -143,11 +133,26 @@ export function PlaceDetails({
         onPress={() => openForm("report")}
       />
       <Title>تجارب الوصول</Title>
-      <Btn
-        icon="edit"
-        label={mine ? "تعديل التقييم" : "إضافة تجربة وصول"}
-        onPress={() => openForm(mine ? "edit-rating" : "rating")}
-      />
+      {live && (
+        ownRating.loading ? (
+          <ActivityIndicator />
+        ) : ownRating.result?.status === "error" ? (
+          <>
+            <Message text="تعذّر تحميل تقييمك." />
+            <Btn label="إعادة المحاولة" kind="soft" onPress={ownRating.retry} />
+          </>
+        ) : ownRating.signedIn && !ownRating.session ? (
+          <Message text={ownRating.authError || "التقييم متاح للأعضاء النشطين."} />
+        ) : (
+          <Btn
+            icon="edit"
+            label={mine ? "تعديل التقييم" : "إضافة تجربة وصول"}
+            onPress={() => go(ownRating.session
+              ? placeFormPath(place.id, mine ? "edit-rating" : "rating", true, name)
+              : "/login")}
+          />
+        )
+      )}
       {!reviews.length && <T>لا توجد مراجعات بعد.</T>}
       {reviews.map((r) => (
         <Card key={r.key}>
@@ -158,6 +163,7 @@ export function PlaceDetails({
             <Image
               key={uri}
               source={{ uri }}
+              cachePolicy="none"
               style={{ height: 120, borderRadius: 12 }}
               contentFit="cover"
             />
