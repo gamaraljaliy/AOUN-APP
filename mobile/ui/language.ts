@@ -2,7 +2,7 @@ export const english: Record<string, string> = {
   "ابحث عن مكان يناسبك": "Find a place that suits you",
   "اكتب اسم المكان في البحث، أو اختر المرافق التي تحتاجها، مثل المصعد والمدخل المهيأ، لتظهر لك الأماكن المطابقة.": "Search by place name or select the facilities you need, such as an elevator or an accessible entrance, to see matching places.",
   "استكشف الأماكن القريبة": "Explore nearby places",
-  "افتح الخريطة واضغط على علامة مكان لرؤية بطاقته. افتح البطاقة للاطلاع على تفاصيل المكان ومرافقه قبل الزيارة.": "Open the map and tap a marker to see its place card. Open the card to check the facilities before your visit.",
+  "افتح الخريطة واضغط على علامة مكان لرؤية بطاقته. اضغط «تفاصيل المكان» للاطلاع على تفاصيل المكان ومرافقه قبل الزيارة.": "Open the map and tap a marker to see its place card. Tap Place details to check the facilities before your visit.",
   "احفظ المكان وشارك تجربتك": "Save places and share your experience",
   "سجّل الدخول واضغط على القلب لحفظ المكان في المفضلة. بعد الزيارة، يمكنك كتابة مراجعة أو الإبلاغ عن معلومة تحتاج إلى تحديث.": "Sign in and tap the heart to save a place. After visiting, you can write a review or report information that needs updating.",
   "هل أحتاج إلى حساب؟": "Do I need an account?",
