@@ -15,7 +15,8 @@ def session(port):
         user="postgres", sslmode="disable", autocommit=True, connect_timeout=3,
     ) as connection:
         marker = connection.execute("""
-            select inet_server_addr() = '127.0.0.1'::inet
+            -- The client pins loopback above. PostgreSQL sees its container address.
+            select current_database() = 'aoun_ci'
                and to_regprocedure('storage.aoun_review_photo_ci_fixture()') is not null
         """).fetchone()
         if marker != (True,):
