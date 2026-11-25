@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { View } from "react-native";
+import { useAuth } from "../auth/context";
 import { useDemo } from "../ui/demo";
+import { errorText } from "../services/supabase";
 import {
   Btn,
-  C,
   Card,
   Chip,
   Field,
@@ -16,63 +17,81 @@ import {
   replace,
 } from "../ui/components";
 export default function Profile() {
-  const d = useDemo();
-  const [editing, setEdit] = useState(false),
-    [name, setName] = useState(d.user?.name ?? "");
-  const [attempted, setAttempted] = useState(false);
+  const auth = useAuth(),
+    d = useDemo();
+  const [editing, setEditing] = useState(false),
+    [name, setName] = useState("");
+  const [language, setLanguage] = useState<"ar" | "en">("ar");
+  const [message, setMessage] = useState(""),
+    [busy, setBusy] = useState(false);
+  async function save() {
+    if (!name.trim()) {
+      setMessage("أدخل الاسم الكامل.");
+      return;
+    }
+    if (busy) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      await auth.saveProfile(name, language);
+      d.setLang(language);
+      setEditing(false);
+      setMessage("تم حفظ التعديلات.");
+    } catch (error) {
+      setMessage(errorText(error));
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <Shell nav title="حسابي والإعدادات">
-      <Card style={{ alignItems: "center", padding: 23 }}>
+      <Message
+        text={
+          message ||
+          auth.error ||
+          (auth.profile?.status === "suspended" ? "الحساب معلّق." : "")
+        }
+      />
+      <Card>
         <Icon name="user" size={44} />
-        <T size={23} bold>
-          {d.user?.name ?? "زائر"}
-        </T>
-        <T>{d.email ?? ""}</T>
+        <T bold>{auth.profile?.display_name ?? "زائر"}</T>
+        <T>{auth.session?.user.email ?? ""}</T>
       </Card>
-      {d.user ? (
-        <Card>
-          <Btn
-            kind="soft"
-            label="تعديل الملف الشخصي"
-            onPress={() => {
-              setAttempted(false);
-              setName(d.user?.name ?? "");
-              setEdit(!editing);
-            }}
-          />
-          {editing && (
-            <>
-              <Field
-                label="الاسم الكامل"
-                error={
-                  attempted && !name.trim() ? "أدخل الاسم الكامل." : undefined
-                }
-                value={name}
-                onChangeText={setName}
-              />
-              <Btn
-                label="حفظ التعديلات"
-                onPress={() => {
-                  setAttempted(true);
-                  if (!name.trim()) return;
-                  d.setAccounts((all) =>
-                    all.map((a) =>
-                      a.email === d.email ? { ...a, name: name.trim() } : a,
-                    ),
-                  );
-                  d.setReviews((all) =>
-                    all.map((r) =>
-                      r.author === d.email ? { ...r, name: name.trim() } : r,
-                    ),
-                  );
-                  setEdit(false);
-                }}
-              />
-            </>
-          )}
-        </Card>
+      {auth.loading ? (
+        <T>جارٍ التحميل…</T>
       ) : (
-        <Btn label="تسجيل الدخول" onPress={() => go("/login")} />
+        auth.profile?.status === "active" && (
+          <Card>
+            <Btn
+              label="تعديل الملف الشخصي"
+              onPress={() => {
+                setName(auth.profile!.display_name);
+                setLanguage(auth.profile!.preferred_language);
+                setEditing(!editing);
+              }}
+            />
+            {editing && (
+              <>
+                <Field
+                  label="الاسم الكامل"
+                  value={name}
+                  onChangeText={setName}
+                />
+                <View style={S.row}>
+                  {(["ar", "en"] as const).map((l) => (
+                    <Chip
+                      key={l}
+                      label={l === "ar" ? "عربي" : "English"}
+                      active={language === l}
+                      onPress={() => setLanguage(l)}
+                    />
+                  ))}
+                </View>
+                <Btn label="حفظ التعديلات" disabled={busy} onPress={save} />
+              </>
+            )}
+          </Card>
+        )
       )}
       <Card>
         <T bold>لغة التطبيق</T>
@@ -89,22 +108,30 @@ export default function Profile() {
           />
         </View>
       </Card>
-      {d.user && (
+      {auth.session ? (
         <>
+          <Btn label="استعادة كلمة المرور" onPress={() => go("/reset")} />
+          {auth.admin && (
+            <Btn label="الإدارة" onPress={() => go("/admin/places")} />
+          )}
           <Btn
-            kind="outline"
-            label="استعادة كلمة المرور"
-            onPress={() => go("/reset")}
-          />
-          <Btn
-            kind="soft"
             label="تسجيل الخروج"
-            onPress={() => {
-              d.setEmail(null);
-              replace("/welcome");
+            disabled={busy}
+            onPress={async () => {
+              setBusy(true);
+              try {
+                await auth.signOut();
+                replace("/welcome");
+              } catch (error) {
+                setMessage(errorText(error));
+              } finally {
+                setBusy(false);
+              }
             }}
           />
         </>
+      ) : (
+        <Btn label="تسجيل الدخول" onPress={() => go("/login")} />
       )}
     </Shell>
   );

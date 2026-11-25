@@ -1,39 +1,45 @@
 import { useState } from "react";
-import { useDemo } from "../../ui/demo";
-import { Btn, Card, Link, Shell, T } from "../../ui/components";
+import { list, remove, type AdminReview } from "../../services/admin";
+import { useAdminData, AdminFeedback } from "../../ui/admin";
+import { Btn, Card, Shell, T } from "../../ui/components";
+const load = () =>
+  list<AdminReview>("ratings", "*,profiles(display_name),places(name_ar)");
 export default function Reviews() {
-  const d = useDemo(),
-    [id, setId] = useState<number | null>(null);
+  const state = useAdminData(load),
+    [selected, setSelected] = useState<number | null>(null);
   return (
     <Shell admin nav title="إدارة المراجعات">
-      {d.reviews.map((r) => (
+      <AdminFeedback state={state} />
+      {(state.data ?? []).map((r) => (
         <Card key={r.id}>
-          <T bold>{r.name}</T>
+          <T bold>{r.profiles?.display_name ?? "مستخدم"}</T>
+          <T>{r.places?.name_ar ?? "رقم المكان: " + r.place_id}</T>
           <T>{"★".repeat(r.score)}</T>
-          <T>{r.placeName ?? d.places.find((p) => p.id === r.placeId)?.name}</T>
-          <T>{r.text}</T>
-          {id === r.id ? (
+          <T>{r.review_text ?? ""}</T>
+          {selected === r.id ? (
             <>
               <Btn
-                label="تأكيد حذف المراجعة"
                 kind="danger"
-                onPress={() => {
-                  d.setReviews((v) => v.filter((x) => x.id !== id));
-                  setId(null);
+                disabled={state.busy}
+                label="تأكيد حذف المراجعة"
+                onPress={async () => {
+                  if (await state.mutate(() => remove("ratings", r.id)))
+                    setSelected(null);
                 }}
               />
-              <Link label="إلغاء" onPress={() => setId(null)} />
+              <Btn label="إلغاء" onPress={() => setSelected(null)} />
             </>
           ) : (
             <Btn
-              kind="soft"
               label="حذف المراجعة المخالفة"
-              onPress={() => setId(r.id)}
+              onPress={() => setSelected(r.id)}
             />
           )}
         </Card>
       ))}
-      {!d.reviews.length && <T>لا توجد مراجعات بعد.</T>}
+      {!state.loading && !state.error && !state.data?.length && (
+        <T>لا توجد مراجعات بعد.</T>
+      )}
     </Shell>
   );
 }

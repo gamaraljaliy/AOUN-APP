@@ -1,8 +1,9 @@
 import { View } from "react-native";
 import { Btn, Logo, Shell, T, go, replace } from "../ui/components";
-import { useDemo } from "../ui/demo";
+import { useAuth } from "../auth/context";
+import { Alert } from "react-native";
 export default function Welcome() {
-  const { setEmail } = useDemo();
+  const auth = useAuth();
   return (
     <Shell>
       <View
@@ -33,9 +34,13 @@ export default function Welcome() {
           <Btn
             label="المتابعة كزائر"
             kind="soft"
-            onPress={() => {
-              setEmail(null);
-              replace("/home");
+            onPress={async () => {
+              try {
+                if (auth.session) await auth.signOut();
+                replace("/home");
+              } catch {
+                Alert.alert("تعذّر تسجيل الخروج. حاولي مجددًا.");
+              }
             }}
           />
         </View>

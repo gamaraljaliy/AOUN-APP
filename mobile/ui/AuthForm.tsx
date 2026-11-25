@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
-import { adminEmail, memberEmail, useDemo } from "./demo";
+import { useAuth } from "../auth/context";
+import { db, readProfile, errorText } from "../services/supabase";
+import * as Linking from "expo-linking";
+import { ConfirmationResend } from "./ConfirmationResend";
 import {
   Btn,
   C,
@@ -19,11 +22,15 @@ import {
   replace,
 } from "./components";
 export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
-  const d = useDemo();
+  const auth = useAuth();
+  const [role, setRole] = useState<"member" | "admin">("member");
+  const [busy, setBusy] = useState(false);
+  const [registrationResult, setRegistrationResult] = useState<
+    "ready" | "profile-error" | "confirmation" | null
+  >(null);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const tr = useCopy();
   const [attempted, setAttempted] = useState(false);
-  const [duplicate, setDuplicate] = useState("");
-  const [role, setRole] = useState<"member" | "admin">("member");
   const [showConfirm, setShowConfirm] = useState(false);
   const [email, setEmail] = useState(""),
     [name, setName] = useState(""),
@@ -62,37 +69,93 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
           : "",
     consent: reg && !consent ? "الموافقة مطلوبة لإنشاء الحساب." : "",
   };
-  function submit() {
+  async function submit() {
     setAttempted(true);
     setMsg("");
-    if (Object.values(errors).some(Boolean)) return;
-    if (reset) {
-      setMsg("استعادة كلمة المرور بالبريد غير متاحة في النسخة التجريبية.");
-      return;
-    }
-    if (reg) {
-      if (d.passwords.current[key]) {
-        setDuplicate(key);
+    if (busy || registrationResult || Object.values(errors).some(Boolean)) return;
+    setNeedsConfirmation(false);
+    setBusy(true);
+    try {
+      const client = db();
+      const redirectTo = Linking.createURL("auth/callback");
+      if (reset) {
+        const { error } = await client.auth.resetPasswordForEmail(key, {
+          redirectTo: Linking.createURL("auth/callback", {
+            queryParams: { flow: "recovery" },
+          }),
+        });
+        if (error) throw error;
+        setMsg("إذا كان البريد مسجلًا، سيصلك رابط استعادة كلمة المرور.");
         return;
       }
-      d.passwords.current[key] = password;
-      d.setAccounts((a) => [
-        ...a,
-        { email: key, name: name.trim(), suspended: false },
-      ]);
-    } else if (
-      d.passwords.current[key] !== password ||
-      d.accounts.some((a) => a.email === key && a.suspended)
-    ) {
-      setMsg("تحققي من بيانات الدخول وحالة الحساب.");
-      return;
+      const result = reg
+        ? await client.auth.signUp({
+            email: key,
+            password,
+            options: {
+              data: { display_name: name.trim() },
+              emailRedirectTo: redirectTo,
+            },
+          })
+        : await client.auth.signInWithPassword({ email: key, password });
+      if (result.error) {
+        const code = result.error.code;
+        setNeedsConfirmation(code === "email_not_confirmed");
+        setMsg(
+          reg && (code === "user_already_exists" || code === "email_exists")
+            ? "هذا البريد مسجل بالفعل. سجّلي الدخول أو استعيدي كلمة المرور."
+            : code === "invalid_credentials"
+              ? "البريد الإلكتروني أو كلمة المرور غير صحيحة."
+              : code === "email_not_confirmed"
+                ? "يلزم تأكيد البريد لهذا الحساب قبل تسجيل الدخول."
+                : code === "weak_password"
+                  ? "كلمة المرور لا تستوفي شروط الحماية. راجعي الشروط وحاولي مجددًا."
+                  : reg
+                    ? "تعذّر إنشاء الحساب. تحققي من البيانات وحاولي مجددًا."
+                    : "تعذّر تسجيل الدخول. حاولي مجددًا.",
+        );
+        return;
+      }
+      if (!result.data.session) {
+        if (reg) {
+          setPassword("");
+          setConfirm("");
+          setRegistrationResult("confirmation");
+        } else setMsg("تعذّر تسجيل الدخول. حاولي مجددًا.");
+        return;
+      }
+      let profile: Awaited<ReturnType<typeof readProfile>>;
+      try {
+        profile = await readProfile(result.data.session.user.id);
+      } catch (error) {
+        if (!reg) throw error;
+        setPassword("");
+        setConfirm("");
+        setRegistrationResult("profile-error");
+        return;
+      }
+      if (profile.status !== "active") {
+        await auth.signOut();
+        setMsg("الحساب معلّق. تواصلي مع إدارة التطبيق.");
+        return;
+      }
+      if (login && profile.role !== role) {
+        await auth.signOut();
+        setMsg("اختاري نوع الحساب المطابق لحسابك.");
+        return;
+      }
+      if (reg) {
+        setPassword("");
+        setConfirm("");
+        setRegistrationResult("ready");
+        return;
+      }
+      replace(profile.role === "admin" ? "/admin/places" : "/home");
+    } catch (error) {
+      setMsg(errorText(error));
+    } finally {
+      setBusy(false);
     }
-    if (login && (key === adminEmail) !== (role === "admin")) {
-      setMsg("اختاري نوع الحساب المطابق لبريدك.");
-      return;
-    }
-    d.setEmail(key);
-    replace(key === adminEmail ? "/admin/places" : "/home");
   }
   function eye(shown: boolean, toggle: () => void) {
     return (
@@ -111,6 +174,42 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
       >
         <Icon name="eye" size={19} />
       </Pressable>
+    );
+  }
+  if (registrationResult) {
+    const ready = registrationResult === "ready";
+    const pending = registrationResult === "confirmation";
+    return (
+      <Shell brand>
+        <View style={{ gap: 18, paddingVertical: 32 }}>
+          <T center bold size={28}>
+            {pending
+              ? "تحققي من بريدك لإكمال التسجيل"
+              : ready
+                ? "تم إنشاء الحساب بنجاح"
+                : "تم إنشاء الحساب، لكن تعذّر تحميل ملفك."}
+          </T>
+          <T center color={C.muted}>
+            {pending
+              ? "راجعي بريدك وافتحي أحدث رابط تأكيد على الجهاز والمتصفح نفسيهما لإكمال التسجيل."
+              : ready
+                ? "حسابك جاهز. يمكنك الآن استخدام عون."
+                : "سجّلي الدخول بالمعلومات نفسها للمحاولة مجددًا."}
+          </T>
+          {pending && (
+            <>
+              <ConfirmationResend email={key} />
+              <T center color={C.muted}>
+                إذا كان لديك حساب سابق بهذا البريد، سجّلي الدخول.
+              </T>
+            </>
+          )}
+          <Btn
+            label={ready ? "متابعة إلى التطبيق" : "العودة إلى تسجيل الدخول"}
+            onPress={() => replace(ready ? "/home" : "/login")}
+          />
+        </View>
+      </Shell>
     );
   }
   const title = login
@@ -167,27 +266,14 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
                   label={option === "admin" ? "مشرف" : "مستخدم"}
                   active={role === option}
                   onPress={() => {
-                    if (role === option) return;
-                    setRole(option);
-                    setEmail("");
-                    setPassword("");
-                    setMsg("");
-                    setAttempted(false);
+                    if (!busy) {
+                      setRole(option);
+                      setMsg("");
+                    }
                   }}
                 />
               ))}
             </View>
-            <Btn
-              kind="soft"
-              label={role === "admin" ? "تعبئة حساب المشرف التجريبي" : "تعبئة حساب المستخدم التجريبي"}
-              onPress={() => {
-                const mail = role === "admin" ? adminEmail : memberEmail;
-                setEmail(mail);
-                setPassword(d.passwords.current[mail]);
-                setMsg("");
-                setAttempted(false);
-              }}
-            />
           </View>
         )}
         {reg && (
@@ -201,10 +287,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
         )}
         <Field
           icon="mail"
-          error={
-            (attempted && errors.email) ||
-            (duplicate && duplicate === key ? "البريد مسجل مسبقًا." : undefined)
-          }
+          error={attempted ? errors.email : undefined}
           label="البريد الإلكتروني"
           keyboardType="email-address"
           autoCapitalize="none"
@@ -212,8 +295,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
           placeholder="name@example.com"
           onChangeText={(value) => {
             setEmail(value);
-            setDuplicate("");
             setMsg("");
+            setNeedsConfirmation(false);
           }}
         />
         {!reset && (
@@ -255,7 +338,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
               ))}
             </View>
             <Chip
-              label="أوافق على استخدام بيانات تجريبية لهذه الجلسة"
+              label="أوافق على إنشاء حساب وحفظ بيانات ملفي الشخصي"
               active={consent}
               onPress={() => setConsent(!consent)}
             />
@@ -266,10 +349,12 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
           <Link label="نسيت كلمة المرور؟" onPress={() => go("/reset")} />
         )}
         <Message text={msg} />
+        {needsConfirmation && <ConfirmationResend key={key} email={key} />}
         <Btn
           label={
             login ? title : reg ? "إنشاء حساب في عون" : "إرسال رابط الاستعادة"
           }
+          disabled={busy}
           onPress={submit}
         />
         {login && (
@@ -277,9 +362,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
             <Btn
               kind="soft"
               label="المتابعة كزائر دون تسجيل"
-              onPress={() => {
-                d.setEmail(null);
-                replace("/home");
+              onPress={async () => {
+                try {
+                  if (auth.session) await auth.signOut();
+                  replace("/home");
+                } catch (error) {
+                  setMsg(errorText(error));
+                }
               }}
             />
             <Link label="إنشاء حساب جديد" onPress={() => go("/register")} />

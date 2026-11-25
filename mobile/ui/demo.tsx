@@ -1,5 +1,6 @@
+import { useAuth } from "../auth/context";
 import type { Place as LivePlace } from "../services/places";
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 export const facilityNames = [
   "منحدرات",
@@ -13,10 +14,7 @@ export const facilityNames = [
   "أنظمة سمعية",
 ];
 export type Availability =
-  | "available"
-  | "unavailable"
-  | "not_applicable"
-  | "unknown";
+  "available" | "unavailable" | "not_applicable" | "unknown";
 export const statusNames: Record<Availability, string> = {
   available: "متاح",
   unavailable: "غير متاح",
@@ -53,9 +51,7 @@ export type Report = {
   text: string;
   status: string;
 };
-export type Account = { email: string; name: string; suspended: boolean };
-export const memberEmail = "gamar@example.com",
-  adminEmail = "admin@aoun.example";
+const memberEmail = "gamar@example.com";
 const yes: Availability = "available",
   no: Availability = "unavailable",
   na: Availability = "not_applicable";
@@ -106,14 +102,17 @@ export function distance(lat: number, lon: number, p: Place) {
   return 12742 * Math.asin(Math.sqrt(Math.min(1, h)));
 }
 function useDemoState() {
-  const passwords = React.useRef<Record<string, string>>({
-    [memberEmail]: "AounDemo1",
-    [adminEmail]: "AounDemo1",
-  });
-  const [email, setEmail] = useState<string | null>(null);
-  const [accounts, setAccounts] = useState<Account[]>([
-    { email: memberEmail, name: "قمر", suspended: false },
-  ]);
+  const auth = useAuth();
+  const email = auth.session?.user.email ?? null;
+  const user =
+    auth.profile && auth.profile.status === "active"
+      ? {
+          email: email ?? "",
+          name: auth.profile.display_name,
+          suspended: false,
+        }
+      : undefined;
+  const admin = auth.admin;
   const [places, setPlaces] = useState(seed);
   const [reviews, setReviews] = useState<Review[]>([
     {
@@ -167,8 +166,9 @@ function useDemoState() {
     label: "وسط الرياض",
   });
   const [lang, setLang] = useState<"ar" | "en">("ar");
-  const user = accounts.find((u) => u.email === email);
-  const admin = email === adminEmail;
+  useEffect(() => {
+    if (auth.profile) setLang(auth.profile.preferred_language);
+  }, [auth.profile?.id, auth.profile?.preferred_language]);
   function toggleFavorite(id: number) {
     if (!email || !user || user.suspended) return;
     setFavorites((old) => {
@@ -192,13 +192,9 @@ function useDemoState() {
     );
   }
   return {
-    passwords,
     email,
-    setEmail,
     user,
     admin,
-    accounts,
-    setAccounts,
     places,
     setPlaces,
     reviews,

@@ -1,4 +1,5 @@
 import React from "react";
+import { useAuth } from "../auth/context";
 import {
   Pressable,
   ScrollView,
@@ -297,11 +298,20 @@ export function Shell({
 }) {
   const path = usePathname();
   const d = useDemo();
+  const auth = useAuth();
+  if (admin && auth.loading)
+    return (
+      <SafeAreaView style={S.page}>
+        <View style={S.body}>
+          <T>جارٍ التحقق من الحساب…</T>
+        </View>
+      </SafeAreaView>
+    );
   if (admin && !d.admin)
     return (
       <SafeAreaView style={S.page}>
         <View style={S.body}>
-          <T>سجّلي الدخول بحساب المسؤول التجريبي.</T>
+          <T>سجّلي الدخول بحساب مسؤول نشط.</T>
           <Btn label="تسجيل الدخول" onPress={() => replace("/login")} />
         </View>
       </SafeAreaView>
