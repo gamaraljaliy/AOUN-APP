@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { db, errorText } from "../../services/supabase";
 import {
   list,
@@ -19,7 +19,6 @@ import {
   S,
   Shell,
   T,
-  replace,
   useCopy,
 } from "../../ui/components";
 export default function PlaceForm() {
@@ -112,7 +111,7 @@ function Editor({
         },
         facilities,
       );
-      replace("/admin/places");
+      router.dismissTo("/admin/places");
     } catch (error) {
       setMessage(errorText(error));
     } finally {

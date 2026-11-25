@@ -58,7 +58,7 @@ export default function Profile() {
     }
   }
   return (
-    <Shell nav title="حسابي والإعدادات">
+    <Shell nav admin={auth.admin} title="حسابي والإعدادات">
       <Message
         text={
           message ||
@@ -118,9 +118,6 @@ export default function Profile() {
       {auth.session ? (
         <>
           <Btn label="استعادة كلمة المرور" onPress={() => go("/reset")} />
-          {auth.admin && (
-            <Btn label="الإدارة" onPress={() => go("/admin/places")} />
-          )}
           <Btn
             label="تسجيل الخروج"
             disabled={busy}
