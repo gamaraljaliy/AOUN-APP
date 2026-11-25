@@ -1,3 +1,4 @@
+import { WelcomeMotion } from "../ui/WelcomeMotion";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { onboardingKey } from "../ui/guide";
 import { useEffect } from "react";
@@ -27,14 +28,16 @@ export default function Splash() {
         backgroundColor: "white",
       }}
     >
-      <Logo size={size} />
-      <T
-        size={size * 0.36}
-        bold
-        style={{ fontFamily: "BalooExtra", lineHeight: size * 0.5 }}
-      >
-        عون
-      </T>
+      <WelcomeMotion style={{ alignItems: "center" }}>
+        <Logo size={size} />
+        <T
+          size={size * 0.36}
+          bold
+          style={{ fontFamily: "BalooExtra", lineHeight: size * 0.5 }}
+        >
+          عون
+        </T>
+      </WelcomeMotion>
     </View>
   );
 }
