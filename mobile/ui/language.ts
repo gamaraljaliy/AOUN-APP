@@ -1,4 +1,10 @@
 export const english: Record<string, string> = {
+  "ما عندك بلاغات حتى الآن.": "You have no reports yet.",
+  "ما عندك تقييمات حتى الآن.": "You have no ratings yet.",
+  "سبب الرفض": "Reason for rejection",
+  "حل البلاغ": "Resolution",
+  "تقييماتي": "My ratings",
+  "بلاغاتي": "My reports",
   "ابحث عن مكان يناسبك": "Find a place that suits you",
   "اكتب اسم المكان في البحث، أو اختر المرافق التي تحتاجها، مثل المصعد والمدخل المهيأ، لتظهر لك الأماكن المطابقة.": "Search by place name or select the facilities you need, such as an elevator or an accessible entrance, to see matching places.",
   "استكشف الأماكن القريبة": "Explore nearby places",

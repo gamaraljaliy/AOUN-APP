@@ -11,7 +11,7 @@ import {
 import * as Location from "expo-location";
 import { useLocalSearchParams } from "expo-router";
 import { useDemo } from "../ui/demo";
-import { Btn, Card, Field, Message, Shell, T } from "../ui/components";
+import { Btn, Card, Field, Message, Round, Shell, T } from "../ui/components";
 import { LivePlaceCard } from "../ui/places";
 import {
   searchPlaces,
@@ -125,7 +125,33 @@ export default function Nearby() {
           onSelect={setId}
           height={Math.max(220, Math.min(480, height * 0.47))}
         />
+        <View style={{position: "absolute", top: 8, right: 8, gap: 5, zIndex: 1100}}>
+          <Round icon="locate" label="تحديد موقعي تلقائيًا" onPress={locate} />
+          <Round icon="pin" label="تحديد موقعي يدويًا" onPress={() => setManual(!manual)} />
+          {p && !error && !loading && <Round icon="map" label="فتح الموقع في تطبيق الخرائط" onPress={() =>
+            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`).catch(() => setMsg("تعذّر فتح الخرائط."))} />}
+        </View>
       </View>
+        {manual && (
+          <Card>
+            <Field
+              label="خط العرض"
+              error={attempted ? latError : undefined}
+              value={lat}
+              onChangeText={setLat}
+              keyboardType="numbers-and-punctuation"
+            />
+            <Field
+              label="خط الطول"
+              error={attempted ? lonError : undefined}
+              value={lon}
+              onChangeText={setLon}
+              keyboardType="numbers-and-punctuation"
+            />
+            <Btn label="اعتماد الموقع" onPress={save} />
+          </Card>
+        )}
+        <Message text={msg} />
       {loading ? (
         <ActivityIndicator />
       ) : error ? (
@@ -163,45 +189,6 @@ export default function Nearby() {
             </View>
           ))}
         </ScrollView>
-      )}
-      <Card>
-        <T bold>{d.origin.label}</T>
-        <Btn label="تحديد موقعي تلقائيًا" onPress={locate} />
-        <Btn
-          label="تحديد موقعي يدويًا"
-          kind="soft"
-          onPress={() => setManual(!manual)}
-        />
-        {manual && (
-          <>
-            <Field
-              label="خط العرض"
-              error={attempted ? latError : undefined}
-              value={lat}
-              onChangeText={setLat}
-              keyboardType="numbers-and-punctuation"
-            />
-            <Field
-              label="خط الطول"
-              error={attempted ? lonError : undefined}
-              value={lon}
-              onChangeText={setLon}
-              keyboardType="numbers-and-punctuation"
-            />
-            <Btn label="اعتماد الموقع" onPress={save} />
-          </>
-        )}
-        <Message text={msg} />
-      </Card>
-      {!loading && !error && p && (
-        <Btn
-          label="فتح الموقع في تطبيق الخرائط"
-          onPress={() =>
-            Linking.openURL(
-              `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`,
-            ).catch(() => setMsg("تعذّر فتح الخرائط."))
-          }
-        />
       )}
     </Shell>
   );

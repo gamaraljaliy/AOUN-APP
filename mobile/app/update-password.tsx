@@ -46,7 +46,7 @@ export default function UpdatePassword() {
       setBusy(false);
     }
   }
-  function eye(label: string, toggle: () => void) {
+  function eye(visible: boolean, label: string, toggle: () => void) {
     return (
       <Pressable
         accessibilityRole="button"
@@ -59,7 +59,7 @@ export default function UpdatePassword() {
         }}
         onPress={toggle}
       >
-        <Icon name="eye" size={19} />
+        <Icon name={visible ? "eye" : "eyeOff"} size={19} />
       </Pressable>
     );
   }
@@ -75,7 +75,8 @@ export default function UpdatePassword() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!passwordVisible}
-            trailing={eye(
+            icon="lock"
+            trailing={eye(passwordVisible,
               passwordVisible
                 ? "إخفاء كلمة المرور الجديدة"
                 : "إظهار كلمة المرور الجديدة",
@@ -87,7 +88,8 @@ export default function UpdatePassword() {
             value={confirm}
             onChangeText={setConfirm}
             secureTextEntry={!confirmVisible}
-            trailing={eye(
+            icon="lock"
+            trailing={eye(confirmVisible,
               confirmVisible
                 ? "إخفاء تأكيد كلمة المرور"
                 : "إظهار تأكيد كلمة المرور",

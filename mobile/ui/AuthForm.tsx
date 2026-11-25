@@ -172,7 +172,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
         }}
         onPress={toggle}
       >
-        <Icon name="eye" size={19} />
+        <Icon name={shown ? "eye" : "eyeOff"} size={19} />
       </Pressable>
     );
   }

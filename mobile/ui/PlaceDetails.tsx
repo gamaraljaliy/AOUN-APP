@@ -190,12 +190,12 @@ export function PlaceDetails({
           </>
         ) : ownRating.signedIn && !ownRating.session ? (
           <Message text={ownRating.authError || "التقييم متاح للأعضاء النشطين."} />
-        ) : (
+        ) : mine ? null : (
           <Btn
             icon="edit"
-            label={mine ? "تعديل التقييم" : "إضافة تجربة وصول"}
+            label="إضافة تجربة وصول"
             onPress={() => go(ownRating.session
-              ? placeFormPath(place.id, mine ? "edit-rating" : "rating", true, name)
+              ? placeFormPath(place.id, "rating", true, name)
               : "/login")}
           />
         )
