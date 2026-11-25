@@ -23,6 +23,7 @@ export const icons = {
   reset: require("../assets/icons/reset.svg"),
   mail: require("../assets/icons/mail.svg"),
   lock: require("../assets/icons/lock.svg"),
+  eyeOff: require("../assets/icons/eye-off.svg"),
   eye: require("../assets/icons/eye.svg"),
   marker: require("../assets/icons/marker.svg"),
   locate: require("../assets/icons/locate.svg"),

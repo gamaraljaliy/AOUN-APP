@@ -71,6 +71,12 @@ export default function Profile() {
         <T bold>{auth.profile?.display_name ?? "زائر"}</T>
         <T>{auth.session?.user.email ?? ""}</T>
       </Card>
+      {auth.profile?.role === "member" && auth.profile.status === "active" && (
+        <Card>
+          <Btn kind="soft" label="بلاغاتي" onPress={() => go("/my-reports")} />
+          <Btn kind="soft" label="تقييماتي" onPress={() => go("/my-ratings")} />
+        </Card>
+      )}
       {auth.loading ? (
         <T>جارٍ التحميل…</T>
       ) : (

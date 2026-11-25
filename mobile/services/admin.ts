@@ -26,6 +26,7 @@ export type AdminReport = {
   description: string;
   status: string;
   status_updated_at: string;
+  admin_response: string | null;
   places: { name_ar: string; name_en: string } | null;
 };
 export type AdminReview = {
@@ -74,10 +75,11 @@ export async function setReportStatus(
   id: number,
   previous: string,
   status: string,
+  response: string | null = null,
 ) {
   const { error } = await db()
     .from("reports")
-    .update({ status })
+    .update({ status, admin_response: response })
     .eq("id", id)
     .eq("status", previous)
     .select("id")

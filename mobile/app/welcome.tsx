@@ -1,12 +1,18 @@
+import { useDemo } from "../ui/demo";
 import { WelcomeMotion } from "../ui/WelcomeMotion";
 import { View } from "react-native";
-import { Btn, Logo, Shell, T, go, replace } from "../ui/components";
+import { Btn, Logo, Round, Shell, T, go, replace } from "../ui/components";
 import { useAuth } from "../auth/context";
 import { Alert } from "react-native";
 export default function Welcome() {
+  const {lang, setLang} = useDemo();
   const auth = useAuth();
   return (
     <Shell>
+      <View style={{alignSelf: lang === "ar" ? "flex-start" : "flex-end"}}>
+        <Round icon="globe" label={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"}
+          onPress={() => setLang(lang === "ar" ? "en" : "ar")} />
+      </View>
       <View
         style={{
           flex: 1,

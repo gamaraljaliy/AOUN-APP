@@ -3,7 +3,7 @@ import { useState } from "react";
 import { View } from "react-native";
 import { list, setReportStatus, type AdminReport } from "../../services/admin";
 import { useAdminData, AdminFeedback } from "../../ui/admin";
-import { Btn, Card, Chip, S, Shell, T } from "../../ui/components";
+import { Btn, Card, Chip, Field, S, Shell, T } from "../../ui/components";
 const statuses: Record<string, string> = {
   submitted: "تم الإرسال",
   under_review: "قيد المراجعة",
@@ -20,6 +20,7 @@ export default function Reports() {
   const { lang } = useDemo();
   const state = useAdminData(load),
     [filter, setFilter] = useState("all");
+  const [decision, setDecision] = useState<{id: number; status: string; note: string} | null>(null);
   const rows = (state.data ?? []).filter(
     (r) => filter === "all" || r.status === filter,
   );
@@ -45,7 +46,17 @@ export default function Reports() {
           </T>
           <T>{r.description}</T>
           <T>{statuses[r.status]}</T>
-          {!["resolved", "rejected"].includes(r.status) &&
+          {r.admin_response && <T>{r.admin_response}</T>}
+          {decision?.id === r.id ? (
+            <>
+              <Field label={decision.status === "resolved" ? "حل البلاغ" : "سبب الرفض"}
+                value={decision.note} multiline onChangeText={(note) => setDecision({...decision, note})} />
+              <Btn label="حفظ" disabled={state.busy || !decision.note.trim()} onPress={async () => {
+                if (await state.mutate(() => setReportStatus(r.id, r.status, decision.status, decision.note.trim()))) setDecision(null);
+              }} />
+              <Btn label="إلغاء" kind="soft" disabled={state.busy} onPress={() => setDecision(null)} />
+            </>
+          ) : !["resolved", "rejected"].includes(r.status) &&
             Object.entries(statuses)
               .filter(([v]) => v !== "submitted" && v !== r.status)
               .map(([v, l]) => (
@@ -54,7 +65,7 @@ export default function Reports() {
                   disabled={state.busy}
                   label={l}
                   onPress={() =>
-                    void state.mutate(() => setReportStatus(r.id, r.status, v))
+                    v === "under_review" ? void state.mutate(() => setReportStatus(r.id, r.status, v)) : setDecision({id: r.id, status: v, note: ""})
                   }
                 />
               ))}

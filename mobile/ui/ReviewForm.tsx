@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { router, type Href } from "expo-router";
+import { router, useLocalSearchParams, type Href } from "expo-router";
 import type { Session } from "@supabase/supabase-js";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import {
@@ -32,6 +32,7 @@ export function ReviewForm({
   edit?: boolean;
   confirmDelete?: boolean;
 }) {
+  const {from} = useLocalSearchParams<{from?: string}>();
   const target = usePlaceTarget();
   const id = Number(target.id);
   const placeId = target.live && Number.isInteger(id) && id > 0 && id <= 2147483647
@@ -75,8 +76,8 @@ export function ReviewForm({
       session={review.session}
       placeId={placeId}
       name={target.place?.name ?? ""}
-      details={target.details}
-      deletePath={target.form("delete-rating")}
+      details={from === "activity" ? "/my-ratings" : target.details}
+      deletePath={target.form("delete-rating") + (from === "activity" ? "&from=activity" : "")}
       rating={rating}
       signal={signal}
       canSubmit={review.canSubmit}
@@ -258,7 +259,7 @@ function RatingEditor({
               disabled={!canSubmit || picking || !!job.current?.workflow.hasRejected()}
               onPress={() => void submit()} />
           )}
-          <Btn label="العودة إلى المكان" kind="soft" onPress={() => router.dismissTo(details as Href)} />
+          <Btn label={details === "/my-ratings" ? "تقييماتي" : "العودة إلى المكان"} kind="soft" onPress={() => router.dismissTo(details as Href)} />
         </>
       )}
       {uncertain && (
