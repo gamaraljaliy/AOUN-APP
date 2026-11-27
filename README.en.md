@@ -6,15 +6,61 @@
 
 [العربية](README.md) · [English](README.en.md)
 
-Can I get in without using stairs? Are there Braille signs inside? **AOUN** helps people with disabilities, older adults and their companions plan visits to public places in Riyadh. Search for the facilities you need, read visitors’ experiences and choose a destination that works for you. AOUN is a software engineering project at King Saud University.
+[Repository structure](#repository) · [Technology stack](#stack) · [Run locally](#run)
 
-## Before a visit
+**AOUN is an Arabic-first accessibility guide to public places in Riyadh**, built as a software engineering project at King Saud University for people with disabilities, older adults and their companions.
+
+Imagine planning a visit to Kingdom Centre with someone who uses a wheelchair. You know the address. What you still need to know is whether there is a step-free entrance and a lift. AOUN lets you filter for those facilities, find the place on a map and check its access details before deciding to go.
+
+## From search to a visit
 
 | Filter by facility | Explore the map | Kingdom Centre details |
 |---|---|---|
 | <img src="docs/screens/filters.png" width="220" alt="Filter by facility"> | <img src="docs/screens/map.png" width="220" alt="Explore the map"> | <img src="docs/screens/place.png" width="220" alt="Kingdom Centre details"> |
 
-The app lists Kingdom Centre as partially accessible. Open its details to see which facilities are available. The nine filters cover ramps, lifts, accessible restrooms, designated parking, accessible entrances, tactile paths, Braille signs, visual alerts and assistive listening systems.
+In the Kingdom Centre example, **partially accessible** has a concrete meaning. The listing records accessible entrances and lifts as available, and Braille signs as unavailable. After a visit, a member can share what they experienced or flag a listing that needs correcting.
+
+<a id="repository"></a>
+
+## Repository structure
+
+The tree highlights the main working paths. To trace a search, start at the [filter screen](mobile/app/filters.tsx), inspect how the [places client](mobile/services/places.ts) builds its request, then follow the handler in [FastAPI](backend/main.py). The [Supabase migrations](supabase/migrations/) define the schema and permissions.
+
+```text
+AOUN-APP/
+├── mobile/
+│   ├── app/
+│   │   ├── home.tsx
+│   │   ├── filters.tsx
+│   │   ├── nearby.tsx
+│   │   ├── live-places/[id].tsx
+│   │   └── admin/
+│   ├── services/
+│   │   ├── places.ts
+│   │   ├── reports.ts
+│   │   └── supabase.ts
+│   ├── auth/
+│   ├── ui/
+│   ├── theme/
+│   ├── assets/
+│   └── tests/
+├── backend/
+│   ├── main.py
+│   ├── review_photos.py
+│   ├── review_photo_cleanup.py
+│   └── tests/
+├── supabase/
+│   ├── migrations/
+│   ├── seed.sql
+│   └── tests/
+├── docs/
+│   ├── api.md
+│   ├── database.md
+│   └── screens/
+├── .github/workflows/
+├── README.md
+└── README.en.md
+```
 
 ## Who uses AOUN?
 
@@ -31,22 +77,18 @@ flowchart TD
     E --> F["Admin review"] --> G["Response in My reports"]
 ```
 
-## How it works
+<a id="stack"></a>
 
-The mobile client uses **React Native, TypeScript and Expo SDK 54**, with **Expo Router** for navigation. Maps use **react-native-maps** on mobile and **Leaflet** on the web, alongside **Expo Location** for positioning. The interface pairs **Baloo Bhaijaan 2** with **IBM Plex Sans Arabic**.
+## Technology stack
 
-The client requests place data from a **Python FastAPI** service running on **Uvicorn**. It also connects to **Supabase Auth** for accounts and **PostgreSQL** for member and administrator operations. Row-level policies and database functions enforce access. **Supabase Storage** holds images. The backend validates review photos with **Pillow** and signs access to private images.
+| Layer | Tools | Responsibility |
+|---|---|---|
+| Mobile app | React Native · TypeScript · Expo SDK 54 · Expo Router | Screens, navigation and a shared place detail view for search and map results. |
+| Maps and location | Expo Location · react-native-maps · Leaflet | Device location and place markers on mobile and web. |
+| Place and photo API | Python · FastAPI · Uvicorn · Pillow | Place queries, review photo validation and signed access to private images. |
+| Accounts and storage | Supabase Auth · PostgreSQL · Supabase Storage | Sign-in, favorites, reviews, reports, photos and member/admin permissions. |
 
-## Repository guide
-
-- [`mobile/app/`](mobile/app/) — App screens and administrator routes
-- [`mobile/services/`](mobile/services/) — API and Supabase clients
-- [`mobile/ui/`](mobile/ui/) — Shared forms and UI
-- [`mobile/theme/`](mobile/theme/) — Design colors
-- [`backend/`](backend/) — Place API and review photo processing
-- [`supabase/`](supabase/) — Database config, migrations, seed data and SQL tests
-- [`.github/`](.github/) — Continuous integration workflows and fixtures
-- [`docs/`](docs/) — Developer guides and screenshots
+<a id="run"></a>
 
 ## Run locally
 
