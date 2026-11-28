@@ -4,6 +4,7 @@ import { useAuth } from "../auth/context";
 import { db, readProfile, errorText } from "../services/supabase";
 import * as Linking from "expo-linking";
 import { ConfirmationResend } from "./ConfirmationResend";
+import { useDemo } from "./demo";
 import {
   Btn,
   C,
@@ -23,6 +24,7 @@ import {
 } from "./components";
 export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
   const auth = useAuth();
+  const { lang } = useDemo();
   const [role, setRole] = useState<"member" | "admin">("member");
   const [busy, setBusy] = useState(false);
   const [registrationResult, setRegistrationResult] = useState<
@@ -259,8 +261,12 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "reset" }) {
         {login && (
           <View style={{ gap: 8 }}>
             <T bold>نوع الحساب</T>
-            <View style={{ flexDirection: "row-reverse", gap: 8 }}>
-              {(["member", "admin"] as const).map((option) => (
+<View
+  style={{
+    flexDirection: lang === "ar" ? "row-reverse" : "row",
+    gap: 8,
+  }}
+>              {(["member", "admin"] as const).map((option) => (
                 <Chip
                   key={option}
                   label={option === "admin" ? "مشرف" : "مستخدم"}
