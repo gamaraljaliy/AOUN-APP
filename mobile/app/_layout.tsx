@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { ChatBubble } from "../ui/ChatBubble";
 import {
   useFonts,
   BalooBhaijaan2_700Bold,
@@ -21,15 +22,21 @@ export default function Layout() {
     <AuthProvider>
       <FavoritesProvider>
         <ReportsProvider>
-          <DemoProvider>
-            <StatusBar style="dark" />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: "white" },
-              }}
-            />
-          </DemoProvider>
+         <DemoProvider>
+  <StatusBar style="dark" />
+
+  <Stack
+    screenOptions={{
+      headerShown: false,
+      contentStyle: {
+        backgroundColor: "white",
+      },
+    }}
+  />
+
+  <ChatBubble />
+
+</DemoProvider>
         </ReportsProvider>
       </FavoritesProvider>
     </AuthProvider>
